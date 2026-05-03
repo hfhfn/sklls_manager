@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f6f18715-8c4b-485c-b594-0b268f884462",
+  "path": "xlsx",
+  "path_key": "xlsx",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "anthropics/skills/xlsx",
+    "subpath": "skills\\xlsx",
+    "branch": null
+  }
+}

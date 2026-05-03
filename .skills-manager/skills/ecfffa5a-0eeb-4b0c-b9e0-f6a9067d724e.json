@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ecfffa5a-0eeb-4b0c-b9e0-f6a9067d724e",
+  "path": "simplify",
+  "path_key": "simplify",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "brianlovin/claude-config/simplify",
+    "subpath": "skills\\simplify",
+    "branch": null
+  }
+}

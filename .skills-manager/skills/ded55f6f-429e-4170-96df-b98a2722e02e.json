@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "ded55f6f-429e-4170-96df-b98a2722e02e",
+  "path": "langchain",
+  "path_key": "langchain",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

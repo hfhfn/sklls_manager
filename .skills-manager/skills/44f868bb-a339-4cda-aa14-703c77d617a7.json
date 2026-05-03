@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "44f868bb-a339-4cda-aa14-703c77d617a7",
+  "path": "deepseek-ocr",
+  "path_key": "deepseek-ocr",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

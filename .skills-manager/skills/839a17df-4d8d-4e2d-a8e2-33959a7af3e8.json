@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "839a17df-4d8d-4e2d-a8e2-33959a7af3e8",
+  "path": "crewai",
+  "path_key": "crewai",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

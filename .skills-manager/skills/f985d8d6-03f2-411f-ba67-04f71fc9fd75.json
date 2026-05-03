@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "f985d8d6-03f2-411f-ba67-04f71fc9fd75",
+  "path": "test-driven-development",
+  "path_key": "test-driven-development",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "obra/superpowers/test-driven-development",
+    "subpath": "skills\\test-driven-development",
+    "branch": null
+  }
+}

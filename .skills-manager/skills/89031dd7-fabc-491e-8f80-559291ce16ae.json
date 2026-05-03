@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "89031dd7-fabc-491e-8f80-559291ce16ae",
+  "path": "brainstorming",
+  "path_key": "brainstorming",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "obra/superpowers/brainstorming",
+    "subpath": "skills\\brainstorming",
+    "branch": null
+  }
+}

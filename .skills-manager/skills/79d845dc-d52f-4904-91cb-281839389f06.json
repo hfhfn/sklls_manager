@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "79d845dc-d52f-4904-91cb-281839389f06",
+  "path": "pua",
+  "path_key": "pua",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "tanweai/pua/pua",
+    "subpath": "skills\\pua",
+    "branch": null
+  }
+}

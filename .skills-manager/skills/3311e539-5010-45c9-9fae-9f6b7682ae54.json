@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3311e539-5010-45c9-9fae-9f6b7682ae54",
+  "path": "ralph-loop",
+  "path_key": "ralph-loop",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "andrelandgraf/fullstackrecipes/ralph-loop",
+    "subpath": "skills\\ralph-loop",
+    "branch": null
+  }
+}
