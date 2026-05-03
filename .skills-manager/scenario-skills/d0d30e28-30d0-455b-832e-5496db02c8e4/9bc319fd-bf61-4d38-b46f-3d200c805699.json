@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "scenario_id": "6982b0af-883e-44ec-8490-38d5da99e6fd",
+  "scenario_id": "d0d30e28-30d0-455b-832e-5496db02c8e4",
   "skill_id": "9bc319fd-bf61-4d38-b46f-3d200c805699",
   "sort_order": 12,
   "tools": {
@@ -8,7 +8,6 @@
     "codex": true,
     "github_copilot": true,
     "opencode": true,
-    "trae": true,
     "trae_cn": true
   }
 }

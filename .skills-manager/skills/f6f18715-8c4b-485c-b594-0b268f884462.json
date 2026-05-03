@@ -4,7 +4,9 @@
   "path": "xlsx",
   "path_key": "xlsx",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "documents"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "anthropics/skills/xlsx",

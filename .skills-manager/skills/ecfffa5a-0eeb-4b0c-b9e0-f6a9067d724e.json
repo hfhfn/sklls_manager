@@ -4,7 +4,9 @@
   "path": "simplify",
   "path_key": "simplify",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "简化代码"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "brianlovin/claude-config/simplify",

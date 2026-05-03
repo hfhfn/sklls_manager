@@ -4,7 +4,10 @@
   "path": "webapp-testing",
   "path_key": "webapp-testing",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "frontend",
+    "web"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "anthropics/skills/webapp-testing",

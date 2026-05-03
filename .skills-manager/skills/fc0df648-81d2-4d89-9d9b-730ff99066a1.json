@@ -4,7 +4,10 @@
   "path": "improve-codebase-architecture",
   "path_key": "improve-codebase-architecture",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "mattpocock",
+    "代码优化"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "mattpocock/skills/improve-codebase-architecture",

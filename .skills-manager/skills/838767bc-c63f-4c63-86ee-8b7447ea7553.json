@@ -4,7 +4,10 @@
   "path": "frontend-design",
   "path_key": "frontend-design",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "frontend",
+    "web"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "anthropics/skills/frontend-design",

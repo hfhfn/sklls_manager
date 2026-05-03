@@ -4,7 +4,10 @@
   "path": "writing-skills",
   "path_key": "writing-skills",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "skills",
+    "superpowers"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "obra/superpowers/writing-skills",

@@ -4,7 +4,10 @@
   "path": "web-design-guidelines",
   "path_key": "web-design-guidelines",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "frontend",
+    "web"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "vercel-labs/agent-skills/web-design-guidelines",

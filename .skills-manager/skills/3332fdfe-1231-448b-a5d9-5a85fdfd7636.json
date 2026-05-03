@@ -4,7 +4,9 @@
   "path": "pdf",
   "path_key": "pdf",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "documents"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "anthropics/skills/pdf",

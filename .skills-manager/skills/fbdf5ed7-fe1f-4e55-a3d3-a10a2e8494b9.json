@@ -4,7 +4,10 @@
   "path": "grill-me",
   "path_key": "grill-me",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "mattpocock",
+    "头脑风暴"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "mattpocock/skills/grill-me",

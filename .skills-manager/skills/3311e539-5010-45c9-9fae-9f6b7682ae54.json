@@ -4,7 +4,9 @@
   "path": "ralph-loop",
   "path_key": "ralph-loop",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "强制完成任务"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "andrelandgraf/fullstackrecipes/ralph-loop",

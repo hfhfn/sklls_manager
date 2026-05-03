@@ -4,7 +4,9 @@
   "path": "langchain",
   "path_key": "langchain",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "自定义"
+  ],
   "source": {
     "type": "local",
     "ref": null,

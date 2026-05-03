@@ -4,7 +4,9 @@
   "path": "setup-matt-pocock-skills",
   "path_key": "setup-matt-pocock-skills",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "mattpocock"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "mattpocock/skills/setup-matt-pocock-skills",

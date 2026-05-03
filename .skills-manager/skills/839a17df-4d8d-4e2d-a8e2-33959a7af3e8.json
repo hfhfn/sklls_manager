@@ -4,7 +4,9 @@
   "path": "crewai",
   "path_key": "crewai",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "自定义"
+  ],
   "source": {
     "type": "local",
     "ref": null,
