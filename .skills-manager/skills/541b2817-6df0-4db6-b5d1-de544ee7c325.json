@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "541b2817-6df0-4db6-b5d1-de544ee7c325",
+  "path": "local-html-to-markdown",
+  "path_key": "local-html-to-markdown",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
