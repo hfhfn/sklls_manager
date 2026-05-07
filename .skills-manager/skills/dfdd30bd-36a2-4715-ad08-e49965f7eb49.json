@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "dfdd30bd-36a2-4715-ad08-e49965f7eb49",
+  "path": "baoyu-compress-image",
+  "path_key": "baoyu-compress-image",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-compress-image",
+    "subpath": "skills\\baoyu-compress-image",
+    "branch": null
+  }
+}

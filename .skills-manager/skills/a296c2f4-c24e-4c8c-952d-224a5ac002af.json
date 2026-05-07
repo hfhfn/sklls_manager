@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "a296c2f4-c24e-4c8c-952d-224a5ac002af",
+  "path": "baoyu-url-to-markdown",
+  "path_key": "baoyu-url-to-markdown",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-url-to-markdown",
+    "subpath": "skills\\baoyu-url-to-markdown",
+    "branch": null
+  }
+}

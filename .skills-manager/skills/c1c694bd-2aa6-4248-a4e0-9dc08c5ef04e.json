@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "c1c694bd-2aa6-4248-a4e0-9dc08c5ef04e",
+  "path": "baoyu-post-to-wechat",
+  "path_key": "baoyu-post-to-wechat",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-post-to-wechat",
+    "subpath": "skills\\baoyu-post-to-wechat",
+    "branch": null
+  }
+}

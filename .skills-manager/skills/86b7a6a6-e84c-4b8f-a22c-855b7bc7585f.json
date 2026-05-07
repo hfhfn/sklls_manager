@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "86b7a6a6-e84c-4b8f-a22c-855b7bc7585f",
+  "path": "baoyu-cover-image",
+  "path_key": "baoyu-cover-image",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-cover-image",
+    "subpath": "skills\\baoyu-cover-image",
+    "branch": null
+  }
+}

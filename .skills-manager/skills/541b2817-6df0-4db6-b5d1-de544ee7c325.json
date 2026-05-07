@@ -4,7 +4,9 @@
   "path": "local-html-to-markdown",
   "path_key": "local-html-to-markdown",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "办公"
+  ],
   "source": {
     "type": "local",
     "ref": null,

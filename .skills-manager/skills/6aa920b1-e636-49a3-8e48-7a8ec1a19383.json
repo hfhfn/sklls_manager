@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "6aa920b1-e636-49a3-8e48-7a8ec1a19383",
+  "path": "baoyu-image-cards",
+  "path_key": "baoyu-image-cards",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-image-cards",
+    "subpath": "skills\\baoyu-image-cards",
+    "branch": null
+  }
+}

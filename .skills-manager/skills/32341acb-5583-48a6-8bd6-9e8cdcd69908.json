@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "32341acb-5583-48a6-8bd6-9e8cdcd69908",
+  "path": "baoyu-article-illustrator",
+  "path_key": "baoyu-article-illustrator",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-article-illustrator",
+    "subpath": "skills\\baoyu-article-illustrator",
+    "branch": null
+  }
+}

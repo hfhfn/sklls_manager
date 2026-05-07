@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill_id": "034e15b9-7fe7-4e35-a74d-eff97353849b",
+  "path": "baoyu-slide-deck",
+  "path_key": "baoyu-slide-deck",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体",
+    "办公"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-slide-deck",
+    "subpath": "skills\\baoyu-slide-deck",
+    "branch": null
+  }
+}

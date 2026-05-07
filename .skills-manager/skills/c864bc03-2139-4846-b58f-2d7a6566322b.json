@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "c864bc03-2139-4846-b58f-2d7a6566322b",
+  "path": "baoyu-post-to-x",
+  "path_key": "baoyu-post-to-x",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-post-to-x",
+    "subpath": "skills\\baoyu-post-to-x",
+    "branch": null
+  }
+}

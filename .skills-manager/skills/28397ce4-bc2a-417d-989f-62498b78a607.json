@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "28397ce4-bc2a-417d-989f-62498b78a607",
+  "path": "baoyu-translate",
+  "path_key": "baoyu-translate",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-translate",
+    "subpath": "skills\\baoyu-translate",
+    "branch": null
+  }
+}

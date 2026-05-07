@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "0106300f-89af-4247-8d00-2fe56cc7742b",
+  "path": "baoyu-danger-gemini-web",
+  "path_key": "baoyu-danger-gemini-web",
+  "enabled": true,
+  "tags": [
+    "baoyu自媒体"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jimliu/baoyu-skills/baoyu-danger-gemini-web",
+    "subpath": "skills\\baoyu-danger-gemini-web",
+    "branch": null
+  }
+}

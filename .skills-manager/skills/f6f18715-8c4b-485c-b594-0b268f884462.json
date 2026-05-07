@@ -5,7 +5,8 @@
   "path_key": "xlsx",
   "enabled": true,
   "tags": [
-    "documents"
+    "documents",
+    "办公"
   ],
   "source": {
     "type": "skillssh",
