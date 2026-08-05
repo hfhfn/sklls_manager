@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "5940a5dd-2f59-46a8-aa5f-9a07a9045faa",
+  "path": "course-transcribe",
+  "path_key": "course-transcribe",
+  "enabled": true,
+  "tags": [
+    "视频课程转录"
+  ],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

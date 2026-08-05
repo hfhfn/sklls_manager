@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "4b6381bd-f33f-4d1c-8f0b-2e1cd6d4cf07",
+  "path": "remotion-best-practices",
+  "path_key": "remotion-best-practices",
+  "enabled": true,
+  "tags": [
+    "编程方式制作动画视频"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "remotion-dev/skills/remotion-best-practices",
+    "subpath": "skills\\remotion",
+    "branch": null
+  }
+}

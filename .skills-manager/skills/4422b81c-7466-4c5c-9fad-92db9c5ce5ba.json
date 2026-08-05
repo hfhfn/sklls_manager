@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill_id": "4422b81c-7466-4c5c-9fad-92db9c5ce5ba",
+  "path": "web-video-presentation",
+  "path_key": "web-video-presentation",
+  "enabled": true,
+  "tags": [
+    "garden",
+    "ppt"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "conardli/garden-skills/web-video-presentation",
+    "subpath": "skills\\web-video-presentation",
+    "branch": null
+  }
+}

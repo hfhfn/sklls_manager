@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "88eec4ea-8bd3-4b56-9ce2-9bd245680344",
+  "path": "course-handout",
+  "path_key": "course-handout",
+  "enabled": true,
+  "tags": [
+    "视频课程转录"
+  ],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
