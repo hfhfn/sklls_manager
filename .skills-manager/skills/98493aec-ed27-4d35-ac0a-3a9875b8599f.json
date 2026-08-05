@@ -4,7 +4,9 @@
   "path": "gstack",
   "path_key": "gstack",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "garrytan/gstack/gstack",
