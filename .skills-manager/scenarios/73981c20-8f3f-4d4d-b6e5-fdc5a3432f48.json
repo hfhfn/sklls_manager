@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "scenario_id": "73981c20-8f3f-4d4d-b6e5-fdc5a3432f48",
+  "name": "Hermes",
+  "description": null,
+  "icon": "cpu",
+  "sort_order": 999
+}
