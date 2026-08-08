@@ -4,11 +4,11 @@
   "skill_id": "98493aec-ed27-4d35-ac0a-3a9875b8599f",
   "sort_order": 0,
   "tools": {
-    "claude_code": true,
-    "codex": true,
-    "github_copilot": true,
+    "claude_code": false,
+    "codex": false,
+    "github_copilot": false,
     "hermes": true,
-    "opencode": true,
-    "trae_cn": true
+    "opencode": false,
+    "trae_cn": false
   }
 }
