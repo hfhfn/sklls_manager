@@ -4,7 +4,9 @@
   "path": "claude-vision-skill",
   "path_key": "claude-vision-skill",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "ai-coding"
+  ],
   "source": {
     "type": "git",
     "ref": "https://github.com/asuojun/claude-vision-skill.git",
