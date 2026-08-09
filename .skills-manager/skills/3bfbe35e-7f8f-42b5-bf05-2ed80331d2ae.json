@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "3bfbe35e-7f8f-42b5-bf05-2ed80331d2ae",
+  "path": "claude-vision-skill",
+  "path_key": "claude-vision-skill",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "git",
+    "ref": "https://github.com/asuojun/claude-vision-skill.git",
+    "subpath": null,
+    "branch": null
+  }
+}
