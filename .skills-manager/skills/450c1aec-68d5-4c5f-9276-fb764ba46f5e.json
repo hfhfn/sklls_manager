@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "450c1aec-68d5-4c5f-9276-fb764ba46f5e",
+  "path": "web-search",
+  "path_key": "web-search",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "brave/brave-search-skills/web-search",
+    "subpath": "skills\\web-search",
+    "branch": null
+  }
+}
