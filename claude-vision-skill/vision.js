@@ -21,7 +21,7 @@ try { require("dotenv").config(); } catch {}
 try { require("dotenv").config({ path: path.resolve(__dirname, ".env") }); } catch {}
 
 const BASE_URL = process.env.VISION_BASE_URL || "https://open.bigmodel.cn/api/paas/v4";
-const API_KEY = process.env.VISION_API_KEY || process.env.HERMES_CUSTOM_GLM_API_KEY || "sk-xxx";
+const API_KEY = process.env.VISION_API_KEY || process.env.CUSTOM_GLM_API_KEY || "sk-xxx";
 const MODEL = process.env.VISION_MODEL || "GLM-4.6V-Flash";
 
 function parseArgs() {

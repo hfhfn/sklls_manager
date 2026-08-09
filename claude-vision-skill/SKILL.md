@@ -19,7 +19,7 @@ metadata:
 
 - 模型: `GLM-4.6V-Flash`
 - API Base: `https://open.bigmodel.cn/api/paas/v4`（OpenAI 兼容）
-- API Key: 从环境变量 `HERMES_CUSTOM_GLM_API_KEY` 读取（Hermes `.env` 已配置），也可用 `VISION_API_KEY` / `VISION_MODEL` / `VISION_BASE_URL` 覆盖。
+- API Key: 从环境变量 `CUSTOM_GLM_API_KEY` 读取（Hermes `.env` 已配置），也可用 `VISION_API_KEY` / `VISION_MODEL` / `VISION_BASE_URL` 覆盖。
 
 ## 用法
 
