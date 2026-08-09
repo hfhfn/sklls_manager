@@ -7,7 +7,7 @@
     "claude_code": true,
     "codex": true,
     "github_copilot": true,
-    "hermes": false,
+    "hermes": true,
     "opencode": true,
     "trae_cn": true
   }
