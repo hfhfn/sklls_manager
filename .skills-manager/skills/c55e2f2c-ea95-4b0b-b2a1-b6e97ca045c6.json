@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "c55e2f2c-ea95-4b0b-b2a1-b6e97ca045c6",
+  "path": "vision-tools",
+  "path_key": "vision-tools",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "Anionex/agent-vision-toolkit/vision-tools",
+    "subpath": "skills\\vision-tools",
+    "branch": null
+  }
+}
