@@ -4,7 +4,9 @@
   "path": "archify",
   "path_key": "archify",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "办公"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "tt-a1i/archify/archify",
