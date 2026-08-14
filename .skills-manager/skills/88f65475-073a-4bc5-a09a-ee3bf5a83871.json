@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "88f65475-073a-4bc5-a09a-ee3bf5a83871",
+  "path": "archify",
+  "path_key": "archify",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "tt-a1i/archify/archify",
+    "subpath": "archify",
+    "branch": null
+  }
+}
