@@ -4,7 +4,9 @@
   "path": "vision-tools",
   "path_key": "vision-tools",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "ai-coding"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "Anionex/agent-vision-toolkit/vision-tools",
