@@ -1,0 +1,14 @@
+{
+  "schema_version": "terms-v2",
+  "dictionary_id": "local-audio-core",
+  "version": 1,
+  "scope": "global",
+  "prompt_text": "请保留常见技术缩写与标准拼写。",
+  "terms": [
+    {"term_id":"core.api","canonical":"API","category":"technical","priority":20,"enabled":true,"status":"approved"},
+    {"term_id":"core.json","canonical":"JSON","category":"technical","priority":20,"enabled":true,"status":"approved"},
+    {"term_id":"core.python","canonical":"Python","category":"technical","priority":20,"enabled":true,"status":"approved"},
+    {"term_id":"core.ocr","canonical":"OCR","category":"technical","priority":20,"enabled":true,"status":"approved"},
+    {"term_id":"core.nlp","canonical":"NLP","category":"technical","priority":20,"enabled":true,"status":"approved"}
+  ]
+}
