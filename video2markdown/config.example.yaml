@@ -1,0 +1,102 @@
+# =====================================================
+# video2markdown 配置模板
+# 复制本文件为 ~/.video2md/config.json 后填写各提供商 key。
+# Key 只存本地 ~/.video2md/config.json，不入库、不入日志、不外发。
+# =====================================================
+
+# ---- 云端视觉模型（画面语义，多提供商故障转移 + 模型内回退）----
+# 全部为 OpenAI 兼容 /chat/completions 接口。
+providers:
+  zhipu:
+    enabled: true
+    base_url: "https://open.bigmodel.cn/api/paas/v4"
+    model: "glm-4.6v-flash"
+    models: ["glm-4.6v-flash", "glm-4.1v-thinking-flash", "glm-4v-flash"]
+    # 实测(2026-08)：4.6v 限流频繁(429)；4.1v-thinking 可用但返回 <think> 块(脚本已剥离)；4v 稳定
+    api_key: ""                # 填 xxx.xxx
+    max_retries: 2
+  agnes:
+    enabled: true
+    base_url: "https://apihub.agnes-ai.com/v1"
+    model: "agnes-2.5-flash"
+    models: ["agnes-2.5-flash", "agnes-2.0-flash"]
+    # 实测：2.5 图片+文本均稳(优先)；2.0 文本可用、图片偶发空(脚本判失败切换)
+    api_key: ""
+    max_retries: 2
+
+# ---- LLM 精修：把 OCR/ASR 原始输出整合成最终 MD（agnes 优先）----
+refine:
+  enabled: true
+  providers: ["agnes", "zhipu"]   # 优先 agnes 整理，失败回退智谱等
+  max_chars: 24000               # 材料超过则按时段分块多次调用再拼接
+  prefer_section_chars: 18000    # (保留字段) 单块理想大小
+
+failover:
+  randomize: true          # 起始随机，分摊各家瞬时限流
+  retries: 3               # 每帧最多尝试次数(含同 provider 模型回退)
+  min_delay_s: 2           # 限流后最小退避秒数
+  consecutive_fail_to_sleep: 3
+
+frame_pause_s: 1.0         # 成功帧间间隔，体贴免费档限流（限流重可调大 2-3）
+
+# ---- 画面描述提示词 ----
+describe_prompt: >
+  你是一个严谨的视频画面解说员。请仅描述这张图片中"非文字"的视觉内容：
+  图表/结构/示意、界面/UI布局、现场场景、人物动作、物体等。
+  【该帧已由OCR提取到的文字，不要再重复】：\n{ocr_text}\n\n
+  若画面主要是文字/字幕/幻灯片且无额外视觉信息，直接回复"（无额外视觉信息）"。
+  用简短中文，1-3 句，不要编造。
+
+# ---- ASR 引擎 ----
+engine: "sensevoice"       # 本地: sensevoice(中文最优,默认) | faster-whisper
+                           # 云端: cloud-sensevoice | cloud-tele（走 asr_providers，需余额）
+faster_whisper:
+  size: "large-v3"
+  device: "auto"           # auto|cuda|cpu
+  compute_type: "float16"
+
+# ---- 云端语音识别（ASR）----
+asr_providers:
+  siliconflow-tele-speech:
+    enabled: true
+    base_url: "https://api.siliconflow.cn/v1"
+    model: "TeleAI/TeleSpeechASR"
+    api_key: ""
+  siliconflow-sensevoice:
+    enabled: true
+    base_url: "https://api.siliconflow.cn/v1"
+    model: "FunAudioLLM/SenseVoiceSmall"
+    api_key: ""
+# 实测(2026-08)：云端两个模型与本地 SenseVoiceSmall 质量基本同档；中文场景本地默认更划算。
+
+# ---- 关键帧/OCR ----
+scene_threshold: 0.35      # 场景检测起始阈值（内部 0.35→0.2→0.1 自动降档）
+max_keyframes: 120
+fallback_interval_s: 10
+ocr_conf_threshold: 0.45
+
+# ---- OCR 分级（合理调用：本地为主，弱帧才升云端）----
+ocr:
+  mode: "local-first"
+  cloud_upgrade: true             # 本地弱帧升级云端OCR（需硅基余额；DeepSeek-OCR 实测质量更高）
+  cloud_upgrade_min_ocr_chars: 8  # 本地识别字符数 ≤ 此值视为"弱帧"→ 升级
+  cloud_model_pref: ["deepseek-ai/DeepSeek-OCR"]
+
+ocr_providers:
+  siliconflow-deepseek-ocr:
+    enabled: true
+    base_url: "https://api.siliconflow.cn/v1"
+    model: "deepseek-ai/DeepSeek-OCR"     # 实测：版式/结构/错误率均优于本地 RapidOCR
+    api_key: ""
+  siliconflow-paddleocr-vl:
+    enabled: false
+    base_url: "https://api.siliconflow.cn/v1"
+    model: "PaddlePaddle/PaddleOCR-VL-1.5" # 实测：该图片内容返回乱码🔗，已禁用
+    api_key: ""
+
+# ---- VLM 帧选择 ----
+vlm: true
+max_vlm_frames: 60
+
+# ---- 笔记深度 ----
+depth: "standard"          # light | standard | deep

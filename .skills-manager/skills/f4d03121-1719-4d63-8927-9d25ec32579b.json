@@ -1,12 +1,12 @@
 {
   "schema_version": 1,
-  "skill_id": "bf76c669-e77d-49f6-b359-81c1c8eebe99",
-  "path": "course-pipeline",
-  "path_key": "course-pipeline",
+  "skill_id": "f4d03121-1719-4d63-8927-9d25ec32579b",
+  "path": "video2markdown",
+  "path_key": "video2markdown",
   "enabled": true,
   "tags": [
     "教学",
-    "视频课程转录"
+    "视频转录"
   ],
   "source": {
     "type": "local",

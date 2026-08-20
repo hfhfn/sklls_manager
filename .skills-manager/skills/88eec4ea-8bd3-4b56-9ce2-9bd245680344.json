@@ -5,6 +5,7 @@
   "path_key": "course-handout",
   "enabled": true,
   "tags": [
+    "教学",
     "视频课程转录"
   ],
   "source": {
