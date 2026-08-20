@@ -1,0 +1,38 @@
+{
+  "skill_name": "local-audio-transcribe",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "把本地的中文双人面试录音转成带说话人和时间戳的文字稿，尽量离线完成；如果有中英技术术语，请同时给出需要人工复核的术语候选。",
+      "expected_output": "调用本地音频转录 Skill，生成 raw FunASR、turns、可选 Whisper raw、alignment 候选，并说明原始结果未被覆盖。",
+      "files": [],
+      "expectations": [
+        "Skill 选择本地离线 ASR，而不是在线视频或云端上传流程",
+        "输出包含原始结果、说话人/时间戳和可追溯派生文件",
+        "技术术语建议标为人工审核候选，不直接覆盖主稿"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "请把 C:\\recordings\\meeting.m4a 转录成中文稿，输出到 C:\\runs\\meeting-01，并使用我提供的技术术语表；不要联网，也不要覆盖以前的转录。",
+      "expected_output": "Skill 使用独立输出目录、离线模型和术语表，生成带 metadata 的 raw/turns 结果，并避免覆盖历史文件。",
+      "files": [],
+      "expectations": [
+        "确认本地输入和独立输出目录",
+        "明确使用离线模式并在模型缺失时失败",
+        "保留原始 JSON 并记录术语表与输入哈希"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "我有 FunASR 和 Whisper 的两份本地 JSON 转录，请按时间对齐它们，找出 RAG、BERT、agent、Pydantic 等不一致的地方，生成一个人工审核清单。",
+      "expected_output": "Skill 调用对齐和术语评分流程，生成 alignment JSON/Markdown，包含时间、两侧文本、相似度、原因和 needs_review。",
+      "files": [],
+      "expectations": [
+        "不按数组下标盲目合并，而是使用时间和文本相似度",
+        "报告包含两侧 source IDs、术语冲突和人工审核状态",
+        "不自动选择一侧文本作为最终事实"
+      ]
+    }
+  ]
+}
