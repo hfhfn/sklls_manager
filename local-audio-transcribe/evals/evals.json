@@ -33,6 +33,59 @@
         "报告包含两侧 source IDs、术语冲突和人工审核状态",
         "不自动选择一侧文本作为最终事实"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "把录音 records/慧博云通魏新龙.m4a 转成中文双人面试稿，输出到独立 runs 目录，并做术语复核后给出最终调整稿。",
+      "expected_output": "与 evals/reference/huibo-weixinlong.txt 人工参考稿互证：read 差异报告、术语召回应不低于基线 0.25 且有提升；最终 reviewed 稿应覆盖参考稿大部分内容。",
+      "files": [
+        "evals/reference/huibo-weixinlong.txt"
+      ],
+      "expectations": [
+        "生成 funasr.raw / turns / whisper / alignment",
+        "用 make_reviewed.py 生成 funasr.reviewed.json/.txt 最终调整稿",
+        "用 compare_ref.py 对参考稿互证，补漏词典再重跑",
+        "speaker 角色化：候选人即离职自述者 魏新龙"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "把录音 records/申佳怡电话面试.m4a 转成中文稿（本录音有 3 位说话人：候选 + 两面试官），做术语复核与最终调整稿。",
+      "expected_output": "与 evals/reference/shenjiayi-telephone.txt 互证，术语召回 ≥ 0.909；正确保留 3 位说话人，不把第三说话人当伪影合并。",
+      "files": [
+        "evals/reference/shenjiayi-telephone.txt"
+      ],
+      "expectations": [
+        "识别并保留 3 位说话人（候选=自我介绍者 申佳怡）",
+        "术语召回 ≥ 0.909 基线",
+        "最终 reviewed 稿 + 角色化 conv 视图"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "把录音 records/申徐静朗国3.m4a 转成中文稿，重点术语：RAG、bge-m3、BM25、RRF、Milvus、RAGAS、LangGraph、checkpoint、subagent、BERT。",
+      "expected_output": "与 evals/reference/shenxujing-langguo-3.txt 互证，术语召回 ≥ 当前基线 0.651；LangGraph/checkpoint/BERT/subagent 等音译正确修复。",
+      "files": [
+        "evals/reference/shenxujing-langguo-3.txt"
+      ],
+      "expectations": [
+        "术语召回 ≥ 0.651（bge-m3/BM25/RRF/Milvus/RAGAS/LangGraph/checkpoint/subagent/BERT）",
+        "用 make_reviewed.py 修复音译（lgurap/lang rup→LangGraph、chain point→checkpoint、bird→BERT、子 a 阵→subagent）",
+        "误转 muvers→Milvus、BGM 三→bge-m3、BM 二五→BM25、regas→RAGAS"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "把录音 records/申徐静朗国2.m4a 转成中文稿（网络中断、仅约 5 分钟），并做最终调整稿。",
+      "expected_output": "与 evals/reference/shenxujing-langguo-2.txt 互证，术语召回 ≥ 0.556；保留网络中断导致的简短片段。",
+      "files": [
+        "evals/reference/shenxujing-langguo-2.txt"
+      ],
+      "expectations": [
+        "识别精简会话（网络中断重约）",
+        "术语召回 ≥ 0.556",
+        "最终 reviewed 稿"
+      ]
     }
   ]
 }

@@ -80,6 +80,33 @@ python "$env:RECORD_REVIEW_ROOT\score_transcript.py" `
 
 全文相似度只是粗粒度趋势；重点查看术语 occurrence recall、漏句、重复和 speaker/时间段异常。参考稿没有某术语时显示 N/A，不要解读为识别率为 0。
 
+## 目标输出格式（对标人工优质转写）
+
+最终 `reviewed` 稿应收敛到人工优质转写（见 `evals/reference/*.txt`）的格式约定，便于与 gold 直接回测：
+
+- 头元信息：`YYYY年M月D日 下午/上午 HH:MM|<时长>分 <秒>秒`。
+- `关键词:` 段：逗号分隔的核心领域词。
+- `文字记录:` 后的正文按 `说话人 N MM:SS` 起段的轮次排版（补全标点）。
+- 书面体规范：数字与英文前后留空格（如 `3 年`、`BERT`、`agent`），统一术语拼写，去掉 ASR 填充式重复与语气词噪声。
+- **说话人编号 = 本文件内事件顺序，不固定角色**。不要假设"说话人 1=面试官/说话人 2=候选人"；参考稿各文件编号不一，甚至一个录音有 3 位说话人。需要角色意义时，用语义标签（`--speaker-map` 输出 `面试官/候选人`），候选人 = 做自我介绍/被提问者，且候选人的自介内容最可信。
+
+## 参考稿驱动的质量回测（逐步提高转录质量）
+
+这是把"人工优质参考稿"变成持续提升杠杆的闭环；项目在 `evals/` 保存增量的 benchmark 语料与指标。
+
+1. **建档**：新录音若有对应人工参考稿，把参考稿拷入 skill（`evals/reference/<case>.txt`），并追加一条 `evals/evals.json` 用例记录 gold 路径与最低术语召回期望。
+2. **互证**：对最终稿运行互证报告，定位差异段与漏掉的术语：
+   ```powershell
+   python "$env:RECORD_REVIEW_ROOT\compare_ref.py" `
+     --ref "C:\path\reference.txt" --hyp-json "C:\path\run\funasr.reviewed.json" `
+     --terms-file "C:\path\config\terms\technical-interview.json" `
+     --out-md "C:\path\run\reference.compare.md"
+   ```
+   `compare_ref.py` 输出：参考术语召回明细、参考稿有而引擎(含别名)遗漏/音译的术语、引擎有而参考稿无的存疑点、以及相似度低的差异段。
+3. **补漏 & 重出**：按"上下文可确认、宁缺毋滥"把新的 spoken_variant 修复别名写进项目词库（升 version），重跑 `make_reviewed.py` 重新生成最终稿。示例：`lgurap/lang rup→LangGraph`、`chain point→checkpoint`、`bird→BERT`、`muvers→Milvus`、`BGM 三→bge-m3`、`BM 二五→BM25`、`regas→RAGAS`。
+4. **复测并记录**：重跑 `score_transcript.py`（对 `funasr.reviewed.json` 打分），把指标更新到 `evals/quality-baseline.json`，标注相对基线的提升。重点追踪**术语召回**（最敏感），相似度受音频质量/口音限制只能逐步逼近。
+5. **存疑点只提示、不改参考稿**：参考稿偶有非最优（如"朗国3 MySql"），若引擎按语境更合理（Milvus），在报告中标注，不要回写参考稿。
+
 ## 术语词库与自动管理
 
 不要把某次录音的专名、业务词或 ASR 误识别写入全局词库。按以下层级加载，优先级从低到高为：
