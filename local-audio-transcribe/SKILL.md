@@ -18,10 +18,10 @@ description: 将本地音频录音（.wav、.m4a、.mp3、.flac、.ogg、.aac �
 
 ## 前置检查
 
-1. 查找工具根目录：优先使用环境变量 `RECORD_REVIEW_ROOT`，否则使用当前项目路径 `C:\Users\hfhfn\Desktop\code\students_project\record_review`。确认其中有 `run_funasr.py` 和 `run_whisper.py`。
-2. 使用已有 conda 环境（本机通常是 `llm_gpu`），确认 FunASR、torch 和可选 faster-whisper 已安装。
-3. 默认离线：要求模型已在本地缓存或通过 `--model-path` 指定。离线模式下模型缺失应立即失败，不能偷偷联网下载。
-4. 输出写入用户指定的独立目录，例如 `runs\2026-08-20-interview\`，不要复用或覆盖项目的 `output\` 历史结果。
+2. 查找工具根目录：优先使用环境变量 `RECORD_REVIEW_ROOT`，否则使用当前项目路径 `C:\Users\hfhfn\Desktop\code\students_project\record_review`。确认其中有 `run_funasr.py`、`run_whisper.py`、`manage_terms.py` 和 `suggest_terms.py`。
+3. 使用已有 conda 环境（本机通常是 `llm_gpu`），确认 FunASR、torch 和可选 faster-whisper 已安装。
+4. 默认离线：要求模型已在本地缓存或通过 `--model-path` 指定。离线模式下模型缺失应立即失败，不能偷偷联网下载。
+5. 输出写入用户指定的独立目录，例如 `runs\2026-08-20-interview\`，不要复用或覆盖项目的 `output\` 历史结果。
 
 ## 标准流程
 
@@ -80,8 +80,47 @@ python "$env:RECORD_REVIEW_ROOT\score_transcript.py" `
 
 全文相似度只是粗粒度趋势；重点查看术语 occurrence recall、漏句、重复和 speaker/时间段异常。参考稿没有某术语时显示 N/A，不要解读为识别率为 0。
 
-## 审核原则
+## 术语词库与自动管理
 
+不要把某次录音的专名、业务词或 ASR 误识别写入全局词库。按以下层级加载，优先级从低到高为：
+
+```text
+global 通用词库 < project 项目词库 < session 本次录音词库 < 本次命令行临时词
+```
+
+- 全局词库：只放跨主题、低歧义、人工确认过的词，例如 API、JSON、Python、OCR。
+- 项目词库：放当前客户/领域长期复用的术语；用户确认的新术语默认写入这里。
+- session 词库：放本次录音的姓名、客户名、产品名、临时简称；绑定本次音频 SHA-256，默认不能跨音频使用。
+- `term-suggestions.json`：双引擎产生的候选，状态为 `proposed`，不得直接传给 ASR。
+
+候选只在可靠时间对齐、跨引擎重复或有用户提供的上下文锚点时生成。单次 ASR 错误、普通短词、语气词和未确认的人名/公司名都不能自动升级为术语。即使识别结果看起来像标准词，也要保留 observed variant 和音频时间证据。
+
+需要管理词典时使用项目工具：
+
+```powershell
+python "$env:RECORD_REVIEW_ROOT\manage_terms.py" resolve `
+  --global-file "$env:USERPROFILE\.claude\skills\local-audio-transcribe\config\global-terms.json" `
+  --project-file "C:\path\project\config\terms\technical.json" `
+  --session-file "C:\path\run\session-terms.json" `
+  --out "C:\path\run\terms-snapshot.json"
+
+python "$env:RECORD_REVIEW_ROOT\suggest_terms.py" `
+  --alignment-json "C:\path\run\alignment.json" `
+  --terms-file "C:\path\project\config\terms\technical.json" `
+  --out "C:\path\run\term-suggestions.json"
+```
+
+人工确认后才显式批准，并默认沉淀到 project：
+
+```powershell
+python "$env:RECORD_REVIEW_ROOT\manage_terms.py" approve `
+  --suggestions "C:\path\run\term-suggestions.json" `
+  --candidate-id term-candidate-00001 --canonical "官方术语" `
+  --scope project --target-file "C:\path\project\config\terms\technical.json" `
+  --history "C:\path\project\config\terms\approved-history.jsonl"
+```
+
+批准术语不等于自动修改旧转录；正文修订仍走审核 patch 流程。
 - 优先人工检查：姓名、公司名、数字、日期、金额、身份证号、法律/业务结论、抢话段和录音尾部。
 - 术语表只产生偏置和候选，不保证识别正确。出现 `BERT→波尔特`、`RAG→IG`、`企查查→喜察察` 等情况时，先在 alignment 中确认时间和上下文，再决定修订。
 - 审核 patch 使用 `apply_revisions.py`；默认只校验并写日志，只有显式 `--apply` 才产生新的 reviewed 文件。不要编辑 raw JSON。
