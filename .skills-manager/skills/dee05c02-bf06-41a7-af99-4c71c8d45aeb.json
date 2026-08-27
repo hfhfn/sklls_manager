@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "dee05c02-bf06-41a7-af99-4c71c8d45aeb",
+  "path": "memory-curation",
+  "path_key": "memory-curation",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
