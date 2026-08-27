@@ -69,21 +69,34 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https:/
 或 `only run_code is callable directly`，立即认定**无命令执行能力**——
 `echo`/`cmd`/`powershell`/`python` 全都一样，**不要再反复验证**，直接走下方降级路径。
 
-### 第二步：在无命令行环境下，转录无法由 agent 完成——诚实告知 + 给最小指令
-无 bash = 无法跑 `video2md.py`，也无法用 yt-dlp。两条出路，按成本排序：
+### 第二步：在无命令行环境下，转录无法由 agent 完成——按"自动化程度"分级，尽量少让用户动手
 
-**A. 浏览器抓 CDN 直链（不依赖命令行，唯一能让 agent"实在地"帮到用户的自动路径）**
+无 bash = agent 无法直接跑 `video2md.py`，也无法用 yt-dlp。**用户的核心诉求是"你帮我操作、最多让我授权"，不要让用户复制/粘贴任何命令**。按 agent 可用工具分三档：
+
+**档 1：agent 有浏览器/Playwright 工具 → 自动抓 CDN 直链（最少用户介入）**
 1. 用浏览器打开 `https://www.douyin.com/video/<modal_id>`（或分享短链转出的 video 页）。
 2. 控制台执行，抓 `douyinvod.com` 直链（video 轨 + audio 轨）：
    ```js
    performance.getEntriesByType('resource').map(e=>e.name).filter(n=>n.includes('douyinvod.com'))
    ```
-3. 把 `media-video-avc1/...` 和 `media-audio-und-mp4a/...` 两条 URL 交给用户，让用户在本机
-   curl+ffmpeg 合并（或直接理解为"已拿到本地 mp4 源"）。完整脚本见 `references/douyin-cdn-direct.md`。
+3. 拿到 `media-video-avc1/...` + `media-audio-und-mp4a/...` 两条 URL 后，**自动写一个一键启动器
+   到用户工作区**（见档 2），把 URL 填进去，让用户在本机只"双击/授权"即可下载+转录，不用复制命令。
+   完整脚本见 `references/douyin-cdn-direct.md`。
 
-**B. 给用户一条可复制的单行命令（不要生成 .bat！）**
-在无命令行会话里，**绝不生成 .bat/.ps1**——UTF-8 中文会被 cmd 按 GBK 解析成乱码拆行
-（本次实测踩坑），纯 ASCII 也要额外排查。直接给用户在**本机 PowerShell/CMD** 粘这一行：
+**档 2：agent 有文件写入能力（如 workspace-write）→ 自动落一个一键启动器**
+在用户的**工作区**（DSH 的 workspace-write 空间，如 `temp_project`）自动生成两个文件，
+用户只需**双击/授权一次**，全程不复制命令：
+- `download_douyin.py`：yt-dlp 下载脚本，依次尝试 cookies.txt → 各浏览器 cookies → 直连，
+  输出本地 `video/*.mp4`（脚本内容见 skill 根目录 `templates/download_douyin.py`）。
+- `run_transcribe.bat`：先调 `download_douyin.py` 下载，再把本地 mp4 交给 `video2md.py` 转录。
+  **必须纯 ASCII、CRLF 结尾**（UTF-8 中文会被 cmd 按 GBK 解析成乱码拆行——实测踩坑）。
+- 把抖音 URL 直接写死在 `.bat` 的 `set URL=...`（或让脚本从 drag-drop 的第 1 参数取）。
+
+> 为什么要"落启动器"而非"给命令"：用户已明确"顶多让我授权"，双击一个已就绪的 .bat
+> 比复制长命令更接近"授权"。启动器落在工作区即可，用户在本机对应路径双击。
+
+**档 3：agent 连文件写入都没有 → 才退化为给单行命令（最后手段）**
+实在无法生成启动器时，才把这一行交给用户在**本机 PowerShell/CMD** 粘：
 ```
 conda activate llm_gpu && python C:/Users/hfhfn/<BASE>/skills/video2markdown/scripts/video2md.py "https://v.douyin.com/xxxx/" --work C:/Users/hfhfn/Desktop/vid_work
 ```
