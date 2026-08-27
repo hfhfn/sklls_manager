@@ -58,6 +58,51 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https:/
 - **抖音国内站点不走代理**：本地 Clash 代理(127.0.0.1:7890)会绕挂国内站，
   下载/探测抖音用**直连**即可（curl 直连返回 200）。
 
+## ⚠ 无命令行环境降级指南（DSH / 浏览器沙箱 agent 务必先读）
+
+> 适用：agent 所在会话**无法执行 shell 命令**（bash 返回
+> `terminal inspection is unsupported on platform win32`，或没有 bash 工具可调）。
+> 典型 = DeepSeek Harness / 浏览器 Web 沙箱。**先判断，再动手，别浪费轮次。**
+
+### 第一步：立刻识别环境（1 次 bash 探测即可）
+调一次 `bash`（任意命令，如 `echo ok`）。若报 `terminal inspection is unsupported`
+或 `only run_code is callable directly`，立即认定**无命令执行能力**——
+`echo`/`cmd`/`powershell`/`python` 全都一样，**不要再反复验证**，直接走下方降级路径。
+
+### 第二步：在无命令行环境下，转录无法由 agent 完成——诚实告知 + 给最小指令
+无 bash = 无法跑 `video2md.py`，也无法用 yt-dlp。两条出路，按成本排序：
+
+**A. 浏览器抓 CDN 直链（不依赖命令行，唯一能让 agent"实在地"帮到用户的自动路径）**
+1. 用浏览器打开 `https://www.douyin.com/video/<modal_id>`（或分享短链转出的 video 页）。
+2. 控制台执行，抓 `douyinvod.com` 直链（video 轨 + audio 轨）：
+   ```js
+   performance.getEntriesByType('resource').map(e=>e.name).filter(n=>n.includes('douyinvod.com'))
+   ```
+3. 把 `media-video-avc1/...` 和 `media-audio-und-mp4a/...` 两条 URL 交给用户，让用户在本机
+   curl+ffmpeg 合并（或直接理解为"已拿到本地 mp4 源"）。完整脚本见 `references/douyin-cdn-direct.md`。
+
+**B. 给用户一条可复制的单行命令（不要生成 .bat！）**
+在无命令行会话里，**绝不生成 .bat/.ps1**——UTF-8 中文会被 cmd 按 GBK 解析成乱码拆行
+（本次实测踩坑），纯 ASCII 也要额外排查。直接给用户在**本机 PowerShell/CMD** 粘这一行：
+```
+conda activate llm_gpu && python C:/Users/hfhfn/<BASE>/skills/video2markdown/scripts/video2md.py "https://v.douyin.com/xxxx/" --work C:/Users/hfhfn/Desktop/vid_work
+```
+> `<BASE>` = agent 自己的 skill 基目录，`.claude`、`.dsh`、`.skills-manager` 三处指向同一份
+> 物理脚本（本机已验证 symlink/inode 一致），用哪个都行；不知道就用 `.claude`。
+> 本地视频就把 URL 换成文件路径，`--work` 目录可改。输出到 `~/.video2md/config.json` 的
+> `output_dir`（本机 = 桌面 `vid_work`）。
+
+### 第三步：别再碰这些死路
+- ❌ 反复 `--cookies-from-browser`：Windows 上 Chrome/Edge cookie 是 DPAPI 加密的，
+  yt-dlp 直读常常拿不到有效值，6 个浏览器全失败是常态。别再循环试。
+- ❌ 让用户手动装扩展导出 `cookies.txt`：复杂度高、成功率低，除非是最后手段。
+- ❌ 生成 .bat 让用户双击：编码坑多，且把本该是 agent 的活外包回用户，用户要的是"你帮我操作"。
+
+### 沙箱读不到关键文件
+DSH 的 workspace-write 沙箱只放行工作区内的文件，`~/.video2md/config.json`、
+`C:\Users\hfhfn\.claude\skills\...` 可能 read 不到。读不到就按"配置未就绪"处理，
+直接给用户单行命令（config 默认即可跑，视觉模型 key 缺省时脚本会 fallback）。
+
 ## 流水线（scripts/video2md.py 一键串联）
 
 ```
