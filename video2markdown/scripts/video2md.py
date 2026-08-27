@@ -3,15 +3,23 @@
 """video2md：视频 → 带画面的 Markdown 编排器（一键串联全流程）。
 
 用法：
-  python video2md.py <本地视频路径> [--depth standard|light|deep] [--engine sensevoice|faster-whisper] [--vlm on|off] [--out xxx.md]
-  python video2md.py <在线URL/分享口令>
+  python video2md.py <本地视频路径> [--depth standard|light|deep] [--engine sensevoice|faster-whisper] [--vlm on|off] [--out xxx.md] [--outdir DIR] [--keep-intermediate]
 
-中间产物放在 <视频目录>/.vid_<名称>/；断点续传：已有产物自动跳过。
+中间产物放在 <视频目录>/.vid_<名称>/；默认完成后自动清理（--keep-intermediate 保留）。
+输出默认在视频旁；可用 --outdir 或配置 output_dir 指定目录。
 """
 import argparse
 import json
+import os
+import shutil
 import sys
 from pathlib import Path
+
+# 兼容性自保：若被外部环境（如 Hermes 桌面 app）的 PYTHONPATH 污染，
+# 会误加载别的 site-packages 里的 numpy 等导致 import 失败。此处移除外部
+# 非本环境 site-packages 的路径注入，保证只用自己的依赖。
+for _k in ("PYTHONPATH", "PYTHONHOME"):
+    os.environ.pop(_k, None)
 
 from common import (ProgressLog, load_config, get_intermediate_dir,
                     user_config_path)
@@ -21,6 +29,21 @@ from keyframes import keyframes
 from ocr import ocr_frames
 from describe import describe_frames
 from assemble import assemble
+from refine import refine as refine_md
+
+
+def _cleanup_intermediate(inter, keep, plog):
+    """完成后清理中间产物目录（默认开启；--keep-intermediate 保留）。
+    仅清理 .vid_* 这样明确的中间目录，绝不碰用户输入的视频/输出 md。"""
+    if keep:
+        plog.log(f"[cleanup] 跳过（--keep-intermediate）: {inter}")
+        return
+    try:
+        if Path(inter).exists():
+            shutil.rmtree(inter)
+            plog.log(f"[cleanup] 已清理中间产物: {inter}")
+    except Exception as e:
+        plog.log(f"[cleanup][!] 清理失败（保留）: {e}")
 
 
 def main():
@@ -34,8 +57,11 @@ def main():
     ap.add_argument("--vlm", choices=["on", "off"], default=None,
                     help="是否启用云端画面语义（默认 on）")
     ap.add_argument("--max-vlm-frames", type=int, default=None)
-    ap.add_argument("--out", default=None, help="输出 md 路径（默认在视频旁）")
+    ap.add_argument("--out", default=None, help="输出 md 路径（默认在输出目录，名为视频标题.md）")
+    ap.add_argument("--outdir", default=None, help="输出 md 目录（覆盖配置 output_dir；默认视频旁）")
     ap.add_argument("--work", default=None, help="工作目录（在线下载视频落地处）")
+    ap.add_argument("--keep-intermediate", action="store_true",
+                    help="完成后保留 .vid_* 中间产物（默认清理）")
     a = ap.parse_args()
 
     cfg = load_config()
@@ -43,6 +69,7 @@ def main():
     if a.engine: cfg["engine"] = a.engine
     if a.vlm: cfg["vlm"] = a.vlm == "on"
     if a.max_vlm_frames: cfg["max_vlm_frames"] = a.max_vlm_frames
+    keep = a.keep_intermediate or cfg.get("keep_intermediate", False)
 
     if not user_config_path().exists():
         print("[提示] 未发现 ~/.video2md/config.json，画面语义(描述)将不可用。"
@@ -60,6 +87,14 @@ def main():
     cfg["_duration"] = meta["duration"]
     plog.log(f"[total] 视频: {mp4} | 时长: {meta['duration']:.0f}s")
 
+    # --- 输出目录解析 ---
+    # 优先级：命令行 --outdir > 配置 output_dir；两者都不设 → 视频同目录
+    outdir = a.outdir or cfg.get("output_dir")
+    if outdir:
+        od = Path(outdir)
+        od.mkdir(parents=True, exist_ok=True)
+        a.out = a.out or str(od / f"{Path(mp4).stem}.md")
+
     # --- 各阶段（断点续传：各模块已检查已有产物） ---
     segs = transcribe(mp4, str(inter), cfg, plog)
     frames = keyframes(mp4, str(inter), cfg, plog)
@@ -73,7 +108,6 @@ def main():
     # --- LLM 精修：把 OCR/ASR 原始材料送 agnes 等整合优化 → 最终 MD（失败回退原始组装） ---
     if cfg.get("refine", {}).get("enabled", True):
         try:
-            from refine import refine as refine_md
             refined = refine_md(str(inter), cfg, plog)
             Path(out).write_text(refined, encoding="utf-8")
             plog.log(f"[total] 精修完成 → {out}")
@@ -81,7 +115,12 @@ def main():
             plog.log(f"[refine][!] 整理失败，保留原始组装结果：{e}")
     plog.log(f"[total] 完成 → {out}")
     print(f"\nMarkdown: {out}")
-    print(f"  Intermediate files (can delete): {inter}")
+    if not keep:
+        print(f"  中间产物已自动清理")
+    else:
+        print(f"  中间产物(保留): {inter}")
+    # 完成后清理中间产物
+    _cleanup_intermediate(inter, keep, plog)
 
 
 if __name__ == "__main__":

@@ -38,8 +38,25 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https:/
 #   本地默认 sensevoice(中文最优)；cloud-sensevoice/cloud-tele 走硅基云端(需余额)
 --vlm on|off                     # 是否启用云端画面语义，默认 on
 --max-vlm-frames N               # VLM 最多分析帧数，默认 60
+--outdir DIR                     # 输出 md 目录（覆盖配置 output_dir；默认视频旁）
+--keep-intermediate              # 完成后保留 .vid_* 中间产物（默认自动清理）
 ```
 > 建议在 `llm_gpu` conda 环境下运行（含 FunASR/PyTorch）。首次运行自动下载模型。
+
+**本机默认输出**：`~/.video2md/config.json` 已设 `output_dir=C:\Users\hfhfn\Desktop\vid_work`，
+转录完成后 md 自动落到桌面，且中间产物 `.vid_*` 默认自动清理（需保留时加 `--keep-intermediate`）。
+
+## ⚠ 运行时关键坑（务必先读）
+
+- **PYTHONPATH 污染**：在 Hermes 桌面 app 的终端里运行本脚本时，外层环境把
+  `PYTHONPATH` 设成 hermes venv 的 site-packages，会导致 `import torch`/`import numpy`
+  误加载 hermes 的 numpy（报 `No module named 'numpy._core._multiarray_umath'` 或
+  `WinError 206 路径太长`）。脚本已在入口自动清除 PYTHONPATH/PYTHONHOME 自保；
+  若仍异常，手动 `unset PYTHONPATH VIRTUAL_ENV` 后再跑。
+- **抖音网页版下载需 cookies**：yt-dlp 直连 `www.douyin.com/video/<id>` 常报
+  `Fresh cookies needed`。绕过方案见下方「抖音下载」。
+- **抖音国内站点不走代理**：本地 Clash 代理(127.0.0.1:7890)会绕挂国内站，
+  下载/探测抖音用**直连**即可（curl 直连返回 200）。
 
 ## 流水线（scripts/video2md.py 一键串联）
 
@@ -86,5 +103,8 @@ title, source, duration, 引擎, 模型…
 ## 注意
 
 - 在线下载走外网，抖音/B站多数可直连；YouTube 需走本机代理 `127.0.0.1:7890`（脚本自动识别内网/外网）。
+- 抖音 web 接口须有效 cookie，yt-dlp 常报 `Fresh cookies needed`；此时改用浏览器抓 CDN 直链下载，
+  完整步骤见 `references/douyin-cdn-direct.md`。抖音国内 CDN 走**直连**（勿走代理）。
 - 请遵守平台条款与著作权，仅用于个人学习/研究等合法用途。
-- 断点续传：已生成的中间产物自动跳过，可断点重跑。
+- 断点续传：已生成的中间产物自动跳过，可断点重跑。完成后默认自动清理 `.vid_*` 中间产物
+  （需保留加 `--keep-intermediate`）。

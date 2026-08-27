@@ -22,6 +22,8 @@ CONFIG_DEFAULT = {
     "vlm": True,
     "max_vlm_frames": 60,
     "depth": "standard",
+    "output_dir": None,          # 若设置，最终 md 输出到该目录（可选，否则视频旁）
+    "keep_intermediate": False,  # 完成后是否保留 .vid_* 中间产物（默认清理）
 }
 
 # 用户配置位置：~/.video2md/config.json （Key 只存本地）
