@@ -87,10 +87,14 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https:/
 在用户的**工作区**（DSH 的 workspace-write 空间，如 `temp_project`）自动生成两个文件，
 用户只需**双击/授权一次**，全程不复制命令：
 - `download_douyin.py`：yt-dlp 下载脚本，依次尝试 cookies.txt → 各浏览器 cookies → 直连，
-  输出本地 `video/*.mp4`（脚本内容见 skill 根目录 `templates/download_douyin.py`）。
+  输出本地 `video/*.mp4`。**直接复制 skill 的 `templates/download_douyin.py` 内容**即可。
 - `run_transcribe.bat`：先调 `download_douyin.py` 下载，再把本地 mp4 交给 `video2md.py` 转录。
-  **必须纯 ASCII、CRLF 结尾**（UTF-8 中文会被 cmd 按 GBK 解析成乱码拆行——实测踩坑）。
-- 把抖音 URL 直接写死在 `.bat` 的 `set URL=...`（或让脚本从 drag-drop 的第 1 参数取）。
+  直接复制 skill 的 `templates/run_transcribe.bat`，把其中的 `<URL>`、`<WORK>`、`<BASE>` 三个
+  占位符替换成你的实际值。
+- **两个模板都已做成纯 ASCII + CRLF、无 BOM**，可直接用，不要重写。
+- 模板里 `%WORK%\video` 是字面反斜杠，**转义时务必保留** `\v`（曾因 `\v` 被当垂直制表符 0x0B
+  而写坏目录名——若你在代码里拼 bat 字符串，用 raw string 或 `\\v` 转义，落盘后自检 `.bat`
+  字节含 `WORK%\video` 而非 0x0B）。
 
 > 为什么要"落启动器"而非"给命令"：用户已明确"顶多让我授权"，双击一个已就绪的 .bat
 > 比复制长命令更接近"授权"。启动器落在工作区即可，用户在本机对应路径双击。
