@@ -34,6 +34,12 @@ PROMPT_TMPL = (
 # 帧 OCR 文本超过此长度视为"整页文字"，跳过 VLM（省调用）
 SKIP_OCR_LEN = 300
 
+# 冷却上限（秒）：连续失败越多冷却越长，封顶此值，避免对坏 provider 反复撞
+DEFAULT_MAX_COOLDOWN_S = 120
+# "稳定故障"（空响应/超时/连接错误，非纯限流 429）多为持续状态：
+# 冷却直接取 max_cooldown 的硬性比例，一次就把坏 provider 压下去，不再每帧空转重试
+STABLE_FAIL_COOLDOWN_RATIO = 0.8
+
 
 # 推理模型内容开头的"脚手架"词（"所以/总结/要简洁，1-3句"等），剥掉
 _LEAD = (r"(?:所以|那么|因此|于是|总结|综上|简单说|可以说|答案是|"
@@ -69,6 +75,8 @@ class Provider:
         self.uses = 0
         self.ok = 0
         self.fail = 0
+        # 累计成功/失败用于稳定分排序；最近一次冷却长度(供日志参考)
+        self.last_cooldown_s = 0.0
 
     def client(self):
         if self._client is None:
@@ -84,6 +92,23 @@ class Provider:
 
     def suspend(self, seconds, now):
         self.suspended_until = now + seconds
+        self.last_cooldown_s = seconds
+
+    def stability(self):
+        """稳定分 [0,1]，用于候选排序：成功率越高分越高，连续失败有额外惩罚。
+        未用过的 provider 给中性 0.5，始终有机会被尝试。"""
+        if self.uses == 0:
+            return 0.5
+        base = self.ok / self.uses
+        # 连续 1 次失败 -0.2，连续 2+ 再额外 -0.3，把烂货明显压后
+        penalty = 0.0
+        if self.consecutive_fail >= 1:
+            penalty += 0.2
+        if self.consecutive_fail >= 2:
+            penalty += 0.3
+        if self.uses >= 3 and self.ok == 0:
+            penalty += 0.2  # 用过多次却 0 成功，几乎判死
+        return max(0.0, base - penalty)
 
     def describe(self, prompt):
         import openai
@@ -138,20 +163,39 @@ class Dispatcher:
         self.failover = failover
         self.cool = failover.get("consecutive_fail_to_sleep", 3)
         self.min_delay = failover.get("min_delay_s", 2)
+        self.max_cooldown = failover.get("max_cooldown_s", DEFAULT_MAX_COOLDOWN_S)
         self.lock = threading.Lock()
 
-    def _cooldown(self, p, msg):
-        """按连续失败次数指数退避冷却，避免怼着限流撞。"""
-        secs = self.min_delay * (2 ** min(p.consecutive_fail - 1, 3))
+    def _cooldown(self, p, msg, stable=False):
+        """按连续失败次数指数退避冷却。稳定故障（空响应/超时/连接错）直接取
+        max_cooldown 的高比例，一次把坏 provider 压到底，避免每帧空转重试；\
+        普通限流(429/5xx)则指数增长、封顶 max_cooldown。"""
+        if stable:
+            secs = max(self.min_delay * 2,
+                       int(self.max_cooldown * STABLE_FAIL_COOLDOWN_RATIO))
+        else:
+            secs = min(self.min_delay * (2 ** min(p.consecutive_fail - 1, 8)),
+                       self.max_cooldown)
         p.suspend(secs, time.time())
-        return f"冷却 {p.name} {secs}s：{msg}"
+        kind = "稳定故障" if stable else "限流/超时"
+        return f"冷却 {p.name} {secs}s[{kind}]：{msg}"
 
     def _candidate_order(self):
-        ids = [i for i, p in enumerate(self.providers) if p.available(time.time())]
-        if self.failover.get("randomize", True) and ids:
-            start = [ids[random.randrange(len(ids))]] + [i for i in ids if i != ids[0]]
-            return start
-        return ids
+        now = time.time()
+        avail = [i for i, p in enumerate(self.providers) if p.available(now)]
+        if not avail:
+            return avail
+        # 稳定分降序：把成功率高的排前面，频繁失败的坏 provider 排到末尾，
+        # 且每帧仍带随机位移分摊限流（不会只怼同一个好 provider）。
+        avail.sort(key=lambda i: self.providers[i].stability(), reverse=True)
+        if self.failover.get("randomize", True) and len(avail) > 2:
+            # 只对前 half 好 provider 做随机起始位移；坏 provider 永远垫底
+            good = avail[:max(1, len(avail) // 2)]
+            rest = avail[len(good):]
+            start = good[random.randrange(len(good))]
+            good_rot = [start] + [i for i in good if i != start]
+            return good_rot + rest
+        return avail
 
     def describe_one(self, frame, ocr_text):
         """针对单帧调度：逐家尝试(可选随机起始)，429/5xx/超时自动切换，返回 (caption, provider_name, switched_logs)"""
@@ -181,12 +225,22 @@ class Dispatcher:
                 except Exception as e:
                     last_err = str(e)[:160]
                     cls = type(e).__name__
+                    # 稳定故障：空响应/超时/连接错误（多为 provider 持续状态，
+                    # 不是瞬时限流）→ 立即长冷却压下去，避免每帧反复空转
+                    stable = ("empty" in last_err.lower()
+                              or cls in ("Timeout", "APITimeoutError",
+                                         "APIConnectionError", "ConnectionError")
+                              or "timed out" in last_err.lower())
                     rate = "429" in last_err or cls == "RateLimitError"
                     srv = str(getattr(e, "status_code", ""))[:1] == "5"
                     timeout = cls in ("Timeout", "APITimeoutError", "APIConnectionError")
                     with self.lock:
-                        if p.consecutive_fail >= self.cool or rate:
-                            logs.append(self._cooldown(p, f"{cls}: {last_err}"))
+                        # 稳定故障:一次压死；否则 429/连续 N 次失败才冷却
+                        if stable or p.consecutive_fail >= self.cool or rate:
+                            logs.append(self._cooldown(
+                                p, f"{cls}: {last_err}", stable=stable))
+                            # 稳定故障本帧即跳过该 provider，不再在同一帧内反复试它
+                            break
                     if timeout:
                         time.sleep(0.5)
             # 一轮都失败：刷新候选（可能有的冷却结束）、退避再试

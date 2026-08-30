@@ -159,7 +159,10 @@ title, source, duration, 引擎, 模型…
 | 硅基流动 siliconflow.cn | `Qwen/Qwen3-VL-8B-Instruct` | Qwen2.5-VL 已下架；免费档随运营变化 |
 | Agnes apihub.agnes-ai.com | `agnes-2.5-flash` | 免费模型，偶发空返回（自动切换）|
 
-任一家限流/报错自动切换到下一家，无需中断。完全离线时 `--vlm off` 只保留 OCR 画面内容。
+任一家限流/报错自动切换到下一家，无需中断。**稳定性调度**（v0.2+）：每家维护成功率与连续失败数，
+候选按「稳定分」排序——频繁失败/空响应的 provider 自动排到末尾并**长冷却（指数退避，封顶
+`max_cooldown_s`，默认120s）**；空响应/超时/连接错这类「稳定故障」直接一次冷却到封顶比例(80%)，
+避免反复空转撞同一个坏 provider；429 限流仍即时切换。完全离线时 `--vlm off` 只保留 OCR 画面内容。
 各参数与免费额度的更新说明见 `references/providers.md`。
 
 ## 注意

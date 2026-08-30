@@ -36,6 +36,8 @@ failover:
   retries: 3               # 每帧最多尝试次数(含同 provider 模型回退)
   min_delay_s: 2           # 限流后最小退避秒数
   consecutive_fail_to_sleep: 3
+  # max_cooldown_s: 120     # 冷却上限(秒)。稳定故障(空响应/超时/连接错)取此值的80%
+                            # 一次性压住坏 provider；普通限流指数退避也封顶此值。
 
 frame_pause_s: 1.0         # 成功帧间间隔，体贴免费档限流（限流重可调大 2-3）
 
