@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "6cef9c9e-d603-484e-a9ec-9532f50932df",
+  "path": "local-audio-transcribe",
+  "path_key": "local-audio-transcribe",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
