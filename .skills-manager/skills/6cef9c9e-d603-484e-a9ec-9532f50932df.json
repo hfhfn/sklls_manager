@@ -5,7 +5,8 @@
   "path_key": "local-audio-transcribe",
   "enabled": true,
   "tags": [
-    "教学"
+    "教学",
+    "音视频转录"
   ],
   "source": {
     "type": "local",
