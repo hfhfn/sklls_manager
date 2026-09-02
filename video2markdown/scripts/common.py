@@ -69,8 +69,12 @@ class ProgressLog:
     def log(self, msg):
         line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
         print(line, flush=True)
-        with open(self.path, "a", encoding="utf-8") as f:
-            f.write(line + "\n")
+        # 进度日志 is best-effort：中间目录被清理后或 IO 异常时不得崩溃（尤其批量遍历）
+        try:
+            with open(self.path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except OSError:
+            pass
 
 
 def fmt_ts(seconds):

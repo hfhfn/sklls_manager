@@ -99,6 +99,9 @@ def ocr_frames(frames, inter_dir, cfg, progress):
     cloud_used = 0
     for i, fr in enumerate(frames, 1):
         t = fr["t"]
+        if not Path(fr["path"]).exists():
+            progress.log(f"[ocr] 跳过缺失关键帧@{t}s")
+            continue
         text = run_ocr(eng, fr["path"], conf)
         # 合理调用：仅"本地弱帧"（几乎没字 → 复杂版式/代码/图表）才升级云端 OCR
         if cloud_upgrade and len(text.strip()) <= min_chars:

@@ -32,16 +32,22 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "C:/path
 # 在线视频（抖音/B站/YouTube 分享口令或链接）
 python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https://v.douyin.com/xxxx/"
 
+# 批量（清单文件），每行一个 本地路径/链接；串行，跳过已产出 md 的，末尾汇总 OK/FAIL/NO_VIDEO
+python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-file 待转录清单.txt
+
 # 常用参数
 --depth standard|light|deep      # 笔记深度，默认 standard
 --engine sensevoice|faster-whisper|cloud-sensevoice|cloud-tele  # ASR 引擎
 #   本地默认 sensevoice(中文最优)；cloud-sensevoice/cloud-tele 走硅基云端(需余额)
---vlm on|off                     # 是否启用云端画面语义，默认 on
+--vlm on|off                     # 是否启用云端画面语义，默认 on；批量/长任务建议 off 保稳
 --max-vlm-frames N               # VLM 最多分析帧数，默认 60
 --outdir DIR                     # 输出 md 目录（覆盖配置 output_dir；默认视频旁）
 --keep-intermediate              # 完成后保留 .vid_* 中间产物（默认自动清理）
 ```
 > 建议在 `llm_gpu` conda 环境下运行（含 FunASR/PyTorch）。首次运行自动下载模型。
+> **抖音短链/URL 默认就能跑**：若 yt-dlp 被 cookie 拦截，`video2md.py` 会自动落库
+> `scripts/douyin_download.py` 走浏览器 CDN 直链下载（无需登录）。需要
+> `pip install playwright`（驱动本机 Edge，`channel=msedge`，不另下载浏览器）+ `ffmpeg`。
 
 **本机默认输出**：`~/.video2md/config.json` 已设 `output_dir=C:\Users\hfhfn\Desktop\vid_work`，
 转录完成后 md 自动落到桌面，且中间产物 `.vid_*` 默认自动清理（需保留时加 `--keep-intermediate`）。
@@ -53,10 +59,35 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https:/
   误加载 hermes 的 numpy（报 `No module named 'numpy._core._multiarray_umath'` 或
   `WinError 206 路径太长`）。脚本已在入口自动清除 PYTHONPATH/PYTHONHOME 自保；
   若仍异常，手动 `unset PYTHONPATH VIRTUAL_ENV` 后再跑。
-- **抖音网页版下载需 cookies**：yt-dlp 直连 `www.douyin.com/video/<id>` 常报
-  `Fresh cookies needed`。绕过方案见下方「抖音下载」。
+- **conda 环境路径（实测）**：本机 conda 在 `D:\software\miniconda3`（不在家目录）。
+  Hermes 桌面 app 的 bash 里 `conda activate llm_gpu` 会报 `CondaError: Run 'conda init'`
+  ——**不要 activate**，直接全路径调用解释器：
+  `/d/software/miniconda3/envs/llm_gpu/python.exe C:/.../video2md.py "<输入>"`
+  （即 `D:\software\miniconda3\envs\llm_gpu\python.exe`，自带 funasr/torch，基座 3.12）。
+  可用 `conda.exe env list`（`/d/software/miniconda3/Scripts/conda.exe`）确认各环境路径。
+- **cleanup 报错（已修复）**：旧版本结束时脚本先删 `.vid_*` 再写进度日志，偶发
+  `FileNotFoundError: '.vid_*/.progress.log'`（退出码 1）。已在 `common.py` 让进度日志
+  best-effort（写失败不再抛异常），现以 `rc=0` 正常结束，批量也不会被它中断。
+  md 产物始终完整，即便偶尔 rc=1 也可忽略。
+- **短链展开拿 video id**：从 `v.douyin.com/xxxx` 拿 `modal_id` 用 curl 直连（不走代理）
+  最省事：
+  `curl -sL -A "Mozilla/5.0" "https://v.douyin.com/xxxx/" -o /dev/null -w "%{url_effective}"`
+  得到 `https://www.douyin.com/video/<id>?previous_page=app_code_link`，据此构造浏览器
+  打开的 video 页。
+- **抖音网页版 yt-dlp 需 cookies（已内置兜底）**：yt-dlp 直连 `www.douyin.com/video/<id>` 常报
+  `Fresh cookies needed`。现在 `video2md.py` 检测到抖音链接且 yt-dlp 失败时，会自动调用
+  `scripts/douyin_download.py` 用 Playwright 抓 CDN 直链下载，**无需登录/cookies**。单条或批量都是自动。
+  依赖：`pip install playwright`（驱动本机 Edge）。
 - **抖音国内站点不走代理**：本地 Clash 代理(127.0.0.1:7890)会绕挂国内站，
-  下载/探测抖音用**直连**即可（curl 直连返回 200）。
+  下载/探测抖音用**直连**即可（curl/Playwright 直连返回 200）。`douyin_download.py` 入口自清代理环境变量。
+- **云端 VLM 偶发挂起**：`--vlm on` 会对 ~40–60 帧逐个调免费云端视觉模型，某个请求可能无限挂起
+  卡死整条进程。**批量转录用 `--vlm off` 最稳**；单条重点视频再按需 `--vlm on`（配 `timeout 560s` 兜底）。
+- **别用单个超长后台任务跑大批量**：一次后台跑完 N 条视频的长脚本可能被系统 kill（如跑到 ~40 分钟
+  `[killed]`）。批量优先用 `--urls-file` 前台跑（它本身就是串行）；或逐条在前台跑。
+- **关键帧 bug（已修复）**：`keyframes.py` 在 `t` 接近/超过片尾时 `ffmpeg -ss t -frames:v 1`
+  可能不落盘，但旧代码仍把该路径写进 `frames.jsonl`，导致 OCR 读不存在的 `intv_xxxx.xxs.jpg` 崩溃。
+  已修复（只在文件真实落盘才加进帧列表 + 写 meta 前再按存在过滤），并给 `ocr.py` 加了跳过缺失关键帧。
+  仍遇到"xxx.jpg does not exist"时，删掉该视频对应的 `.vid_*` 目录重跑。
 
 ## ⚠ 无命令行环境降级指南（DSH / 浏览器沙箱 agent 务必先读）
 
@@ -125,6 +156,7 @@ DSH 的 workspace-write 沙箱只放行工作区内的文件，`~/.video2md/conf
 ```
 输入(本地路径 或 分享链接/URL)
   ├─[ingest.py]      本地→校验/探测时长；在线→yt-dlp(代理感知)下载成 mp4
+  │                    └ 抖音被 cookie 拦截时 → 自动改 [douyin_download.py] Playwright 抓 CDN 直链→ffmpeg 合并 mp4
   ├─[transcribe.py]  ffmpeg→16k WAV → FunASR SenseVoiceSmall(fsmn-vad分段) → transcript.jsonl [{t0,t1,text}]
   ├─[keyframes.py]   ffmpeg 场景检测→代表帧(去重, 30min≈40–70帧)
   ├─[ocr.py]         RapidOCR(CPU) 逐帧→屏内文字(字幕/PPT/代码) + 时间戳；本地弱帧可升云端OCR(需余额)
@@ -168,8 +200,10 @@ title, source, duration, 引擎, 模型…
 ## 注意
 
 - 在线下载走外网，抖音/B站多数可直连；YouTube 需走本机代理 `127.0.0.1:7890`（脚本自动识别内网/外网）。
-- 抖音 web 接口须有效 cookie，yt-dlp 常报 `Fresh cookies needed`；此时改用浏览器抓 CDN 直链下载，
-  完整步骤见 `references/douyin-cdn-direct.md`。抖音国内 CDN 走**直连**（勿走代理）。
+- 抖音 web 接口 yt-dlp 常报 `Fresh cookies needed`；已内置自动兜底 → `scripts/douyin_download.py`
+  （Playwright 抓 CDN 直链，无需登录）。完整背景见 `references/douyin-cdn-direct.md`。
+  抖音国内 CDN 走**直连**（勿走代理）。图文帖（短链展开成 `/note/<id>`）无视频轨，不转录，需单独抓图 OCR。
+- 批量清单每行一条，用 `--urls-file`；串行、跳过已产出 md 的（幂等）、末尾汇总 OK/FAIL/NO_VIDEO。
 - 请遵守平台条款与著作权，仅用于个人学习/研究等合法用途。
 - 断点续传：已生成的中间产物自动跳过，可断点重跑。完成后默认自动清理 `.vid_*` 中间产物
   （需保留加 `--keep-intermediate`）。

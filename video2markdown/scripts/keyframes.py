@@ -87,7 +87,10 @@ def extract_by_interval(video, out_dir, interval_s, duration, max_frames):
              "-frames:v", "1", "-vf", "scale='min(1280,iw)':-2", "-q:v", "2",
              str(out)],
             capture_output=True, check=True, timeout=120)
-        result.append((t, str(out)))
+        # ffmpeg 在 t 接近/超过视频结尾时可能解码不出帧 → 不落盘。
+        # 此时不要引用一个不存在的文件（否则后续 OCR/VLM 会崩）。
+        if out.exists() and out.stat().st_size > 0:
+            result.append((t, str(out)))
     return result
 
 
@@ -162,6 +165,8 @@ def keyframes(video, inter_dir, cfg, progress):
         step = len(final) / max_kf
         final = [final[int(i * step)] for i in range(max_kf)]
     meta = [{"t": round(t, 2), "path": p} for t, p in final]
+    # 防御：剔除任何引用到不存在关键帧的条目（ffmpeg 偶发不落盘），避免 OCR/VLM 崩溃
+    meta = [m for m in meta if Path(m["path"]).exists() and Path(m["path"]).stat().st_size > 0]
     write_jsonl(meta_path, meta)
     progress.log(f"[kf] 关键帧 {len(meta)}（模式=scene:{scene_mode} + interval，去重后）")
     return meta

@@ -102,3 +102,12 @@ max_vlm_frames: 60
 
 # ---- 笔记深度 ----
 depth: "standard"          # light | standard | deep
+
+# ---- 输出与中间产物 ----
+output_dir: ""             # 转录完成的 md 输出目录；留空=写到视频同目录。
+                           # 本机常用：C:\Users\hfhfn\Desktop\vid_work
+keep_intermediate: false   # 完成后默认清理 .vid_* 中间产物，置 true 保留
+
+# ---- 抖音下载（video2md.py 已自动兜底，无需在此配 key）----
+# yt-dlp 被抖音 cookie 拦截时自动走 scripts/douyin_download.py（Playwright 抓 douyinvod 直链）。
+# 依赖：pip install playwright（驱动本机 Edge/Chrome，不另下载浏览器）+ ffmpeg。
