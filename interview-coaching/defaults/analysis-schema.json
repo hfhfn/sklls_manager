@@ -1,0 +1,57 @@
+{
+  "schema_version": "coach-analysis-2026-09",
+  "description": "单次面试的类型化分析。确定性证据由 scripts/extract.py 自动填充；语义字段由编排 LLM 填。profile.py 依赖本 schema 的 candidate.name / session.run_dir / ambiguous_terms / data_claims / depth_gaps / tech_stack_summary。",
+  "fields": {
+    "schema_version": { "type": "str", "required": true },
+    "session": {
+      "type": "dict", "required": true, "fields": {
+        "run_dir": { "type": "str", "required": true },
+        "date": { "type": "str", "required": true },
+        "duration_s": { "type": "float", "required": true },
+        "context_company": { "type": "str", "required": false },
+        "audio_sha": { "type": "str", "required": false }
+      }
+    },
+    "candidate": {
+      "type": "dict", "required": true, "fields": {
+        "name": { "type": "str", "required": true },
+        "role_hint": { "type": "str", "required": false },
+        "speaker_map": {
+          "type": "dict", "required": true, "fields": {
+            "candidate": { "type": "str", "required": true },
+            "others": { "type": "list", "required": true }
+          }
+        }
+      }
+    },
+    "role": { "type": "str", "required": true, "default": "面试" },
+    "self_intro": { "type": "dict", "required": false, "fields": {
+        "time_range": { "type": "str", "required": false },
+        "summary": { "type": "str", "required": false },
+        "note": { "type": "str", "required": false }
+      }
+    },
+    "projects": { "type": "list", "required": true, "default": [] },
+    "projects_note": { "type": "str", "required": false },
+    "concepts_qa": { "type": "list", "required": true, "default": [] },
+    "qa_note": { "type": "str", "required": false },
+    "tech_stack_summary": { "type": "list", "required": true, "default": [] },
+    "ambiguous_terms": { "type": "list", "required": true, "default": [] },
+    "pending_confirm": { "type": "list", "required": true, "default": [] },
+    "data_claims": { "type": "list", "required": true, "default": [] },
+    "strengths": { "type": "list", "required": true, "default": [] },
+    "strengths_note": { "type": "str", "required": false },
+    "risks": { "type": "list", "required": true, "default": [] },
+    "risks_note": { "type": "str", "required": false },
+    "depth_gaps": { "type": "list", "required": true, "default": [] },
+    "recommended_prep": { "type": "list", "required": true, "default": [] },
+    "recommendation": { "type": "str", "required": false },
+    "recommend_note": { "type": "str", "required": false },
+    "pill": { "type": "str", "required": false, "default": "一句话诊断" },
+    "top3": { "type": "str", "required": false, "default": "最大3个深挖点，markdown" },
+    "gapdrills": { "type": "str", "required": false, "default": "每题：面试官会怎么问 + 该怎么答，markdown" },
+    "speech": { "type": "str", "required": false, "default": "开口/表达逐条自查，markdown" },
+    "edge": { "type": "str", "required": false, "default": "没主动讲透的差异化亮点，markdown" },
+    "closing": { "type": "str", "required": false, "default": "收尾/薪酬口径，markdown" }
+  }
+}

@@ -1,0 +1,73 @@
+# 面试记录分析 · {{m.company}} · {{m.candidate}}
+
+> 转录文件：`{{m.run_dir}}/`（FunASR 主稿 + Whisper 复核 + 双引擎对齐 + 术语修正 `funasr.reviewed.*`）
+> 时长约 **{{m.duration_min}}** | 说话人映射：**候选人 = {{m.candidate}}（说话人 {{m.spk_candidate}}）**，**面试官/HR = 说话人 {{m.spk_other}}**
+> 岗位方向：{{m.role_hint}}
+
+---
+
+## 1. 面试基本信息
+
+| 项目 | 内容 |
+|---|---|
+| 公司/环节 | {{m.company}} · {{m.role_setting}} |
+| 候选人 | {{m.candidate}}；{{m.role_hint}} |
+| 环节 | {{m.flow}} |
+| 说话人说明 | {{m.speaker_note}} |
+
+> ⚠️ {{m.transcription_warning}}
+
+---
+
+## 2. 项目与技术要点
+
+{{llm:a.projects_note}}
+
+### 结构化证据（脚本抽取，供核对）
+
+**指标（metrics）**：
+{{list:e.metrics}}
+
+**技术栈（词库命中）**：
+{{list:a.tech_stack_summary}}
+
+**待核实的含糊词（双引擎分歧）**：见 §"术语修正"。
+
+---
+
+## 3. 概念/架构问答
+
+{{llm:a.qa_note}}
+
+---
+
+## 4. 术语修正记录（对齐确认的修正版）
+
+{{llm:a.terms_note}}
+
+**本场含糊词（需复试/当面确认）**：
+{{list:a.ambiguous_terms}}
+
+---
+
+## 5. 候选人优劣势小结
+
+**优势**：
+{{list:a.strengths}}
+{{llm:a.strengths_note}}
+
+**劣势 / 风险**：
+{{list:a.risks}}
+{{llm:a.risks_note}}
+
+**深度缺口（备考聚焦点）**：
+{{list:a.depth_gaps}}
+
+---
+
+## 6. 备考建议（供应试者本人使用）
+
+{{llm:a.recommendation}}
+
+**推荐顺序**：
+{{list:a.recommended_prep}}

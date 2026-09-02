@@ -1,0 +1,309 @@
+{
+  "schema_version": "candidate-profile-2026-09",
+  "name": "魏新龙",
+  "first_seen": {
+    "date": "2026-08-26",
+    "run_dir": "runs/存档/2026-08-26-huibo-weixinlong",
+    "project_tag": "慧博云通"
+  },
+  "sessions": [
+    {
+      "tag": "慧博云通",
+      "run_dir": "runs/存档/2026-08-26-huibo-weixinlong",
+      "date": "2026-08-26",
+      "role": "技术面试",
+      "project_tag": "慧博云通"
+    },
+    {
+      "tag": "博彦",
+      "run_dir": "runs/存档/2026-09-01-boyan-weixinlong",
+      "date": "2026-09-01",
+      "role": "AI运维Agent技术面试",
+      "project_tag": "博彦"
+    },
+    {
+      "tag": "record_review",
+      "run_dir": "runs/2026-09-02-faben-weixinlong",
+      "date": "2026-09-02",
+      "role": "跟进/技术复核 + HR收尾（非完整项目型面试）",
+      "project_tag": "record_review"
+    }
+  ],
+  "tech_stack": {
+    "Agent": {
+      "sessions": [
+        "runs/存档/2026-08-26-huibo-weixinlong",
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 6
+    },
+    "RAG": {
+      "sessions": [
+        "runs/存档/2026-08-26-huibo-weixinlong",
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 4
+    },
+    "Qwen": {
+      "sessions": [
+        "runs/存档/2026-08-26-huibo-weixinlong",
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 3
+    },
+    "Milvus": {
+      "sessions": [
+        "runs/存档/2026-08-26-huibo-weixinlong",
+        "runs/存档/2026-09-01-boyan-weixinlong",
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 5
+    },
+    "BM25": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong",
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 3
+    },
+    "bge-m3": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong",
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 3
+    },
+    "LangGraph": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "MCP": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "A2A": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 1
+    },
+    "RAGAS": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "occurrences": 1
+    },
+    "agent": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "意图识别": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "重跑": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "RRF": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "rerank": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    },
+    "Neo4j": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "occurrences": 2
+    }
+  },
+  "metric_claims": [
+    {
+      "metric": "AIOps响应/解决时间",
+      "value": "18→3.2分钟/82%",
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ]
+    },
+    {
+      "metric": "办公问答准确率",
+      "value": "98.2%",
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ]
+    },
+    {
+      "metric": "医疗RAG召回率",
+      "value": "97%",
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ]
+    },
+    {
+      "metric": "医疗问答命中率",
+      "value": "80%",
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    {
+      "metric": "运维解决时间50%分位",
+      "value": "3.2分钟内",
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    {
+      "metric": "自动重跑相似度阈值",
+      "value": "90%",
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    {
+      "metric": "历史重跑成功率",
+      "value": "80%",
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    }
+  ],
+  "ambiguous_terms": {
+    "boat/bot 模型": {
+      "possible": "embedding模型/微调意图模型",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    "define/defiine": {
+      "possible": "Dify或工作流框架",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    "CC三零/随三零": {
+      "possible": "基线模型具体规模",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    "boat/bot/nottom 模型": {
+      "possible": "embedding 模型 与 微调生成/意图模型（疑 bge / Qwen / DeepSeek）",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    "CC 三零/随三零 基准模型": {
+      "possible": "某基线模型具体规模",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    },
+    "NALNLR / bot 校验": {
+      "possible": "评测/校验组件",
+      "resolved": false,
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ]
+    }
+  },
+  "recurrent_gaps": {
+    "MCP/A2A概念落地细节": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong"
+      ],
+      "evidence": [
+        "能讲是什么，未深入server/client、鉴权、工具注册"
+      ]
+    },
+    "评测与回归体系": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong",
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "反复给出高指标，但未说评测集规模/复现方法"
+      ]
+    },
+    "成本/并发/稳定性": {
+      "sessions": [
+        "runs/存档/2026-09-01-boyan-weixinlong",
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "未主动涉及并发、成本、超时降级"
+      ]
+    },
+    "模型型号与选型理由": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "boat/bot/define/CC三零未坐实"
+      ]
+    },
+    "模型/框架选型说不出具体型号": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "boat/bot/define/CC三零 转写含糊"
+      ]
+    },
+    "评测体系与可复现（景自称有命中率数）": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "命中率80%、相似度90%未讲评测方法与数据量"
+      ]
+    },
+    "成本/并发与降级稳定性": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "未提并发/超时/降级/成本"
+      ]
+    },
+    "安全/权限纵深": {
+      "sessions": [
+        "runs/2026-09-02-faben-weixinlong"
+      ],
+      "evidence": [
+        "只提最高权限才放行，未展开"
+      ]
+    }
+  },
+  "deep_terms": [
+    "Agent",
+    "BM25",
+    "Milvus",
+    "Qwen",
+    "RAG",
+    "bge-m3"
+  ],
+  "pattern_note": "已见 3 场；跨场反复出现同一技术栈（6 个：Agent、BM25、Milvus、Qwen、RAG、bge-m3…），需警惕套路单一、逐场追问深度增量。"
+}

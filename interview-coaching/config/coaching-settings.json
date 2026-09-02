@@ -1,0 +1,26 @@
+{
+  "schema_version": "coaching-settings-2026-09",
+  "version": 1,
+  "note": "interview-coaching skill 的运行设置。默认全部用 skill 内置（跨项目通用）；项目如需本地覆盖（自己的术语词典、模板、题库的 project 层），在项目根的 .coaching/coaching-settings.json 里写同名字段，加载时按 项目>全局 合并。",
+  "roots": {
+    "transcribe_root": "@env:TRANSCRIBE_ROOT|RECORD_REVIEW_ROOT",
+    "global_terms": "@skill:config/global-terms.json",
+    "project_terms": "@env:PROJECT_TERMS_FILE"
+  },
+  "defaults": {
+    "analysis_schema": "@skill:defaults/analysis-schema.json",
+    "analysis_template": "@skill:defaults/analysis.md.j2",
+    "gap_prep_template": "@skill:defaults/gap-prep.md.j2",
+    "depth_questions": "@skill:config/depth-questions.json",
+    "profiles_dir": "@skill:profiles"
+  },
+  "output": {
+    "interview_subdir": "interview"
+  },
+  "flags": {
+    "auto_transcode": true,
+    "auto_extract": true,
+    "auto_merge_profile": true,
+    "render_evidence_skeleton": true
+  }
+}

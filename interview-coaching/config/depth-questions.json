@@ -1,0 +1,116 @@
+{
+  "schema_version": "depth-questions-2026-09",
+  "version": 1,
+  "updated_at": "2026-09-02T00:00:00+00:00",
+  "note": "跨项目累计的通用深挖题库。随真实场次持续增补：发现新缺口→新增一组题；每题记 question/expected/triggers，triggers 击中本场含糊词或技术栈时才会被 bank.py 选出。",
+  "groups": [
+    {
+      "id": "eval",
+      "label": "评测体系与可复现",
+      "questions": [
+        {
+          "id": "eval-1",
+          "question": "你报的 98.2%/97%/80% 这些命中/召回/成功率是怎么测出来的？多少人料、能不能复现？",
+          "expected": "说清：评测集规模、分指标（命中/召回/faithfulness）、用什么框架（RAGAS）、谁标的、是否脚本可复现。",
+          "triggers": ["评测", "准确率", "命中率", "召回率", "成功率", "RAGAS", "评估"]
+        },
+        {
+          "id": "eval-2",
+          "question": "评测结果波动吗？同一批数据上次 97 这次 96，你怎么定位是模型还是数据还是阈值？",
+          "expected": "有回归集、能 A/B 对照、知道评测集泄漏/过拟合风险。",
+          "triggers": ["评测", "回归", "波动", "准确率"]
+        }
+      ]
+    },
+    {
+      "id": "cost",
+      "label": "成本与推理",
+      "questions": [
+        {
+          "id": "cost-1",
+          "question": "本地 Qwen 部署，单卡能抗多少并发？量化到哪个档？每千 token 延迟/成本大概多少？",
+          "expected": "型号、量化档位（INT4/FP16）、推理引擎（vLLM/TGI）、并发/延迟有具体数。",
+          "triggers": ["并发", "量化", "成本", "延迟", "推理", "vLLM", "显存", "GPU"]
+        }
+      ]
+    },
+    {
+      "id": "reliability",
+      "label": "降级与稳定性",
+      "questions": [
+        {
+          "id": "rel-1",
+          "question": "Agent 挂了、大模型超时怎么办？如果一次修复失败，链路怎么兜底？",
+          "expected": "清晰的降级链：超时→规则引擎/数据库兜底→with retry→全部失败推人工；有超时与重试参数。",
+          "triggers": ["降级", "超时", "重试", "失败", "兜底", "稳定性", "容灾", "with retry"]
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "安全与权限",
+      "questions": [
+        {
+          "id": "sec-1",
+          "question": "Agent 自动执行/改代码，怎么控制权限？怎么防止命令注入、越权或误操作？",
+          "expected": "工具白名单、命令/越权校验、敏感操作二次确认+审计日志、分级权限（如你讲的最高权限才放行）。",
+          "triggers": ["权限", "安全", "注入", "越权", "审计", "敏感", "放行"]
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "label": "Agent/工作流概念落地",
+      "questions": [
+        {
+          "id": "agent-1",
+          "question": "你说用确定性脚本替代 Agent，那什么场景你反而必须用 Agent？边界怎么判？",
+          "expected": "能给出可判定的边界：无确定性答案/工具多样/需自主规划时用 Agent，纯规则可覆盖时用脚本。",
+          "triggers": ["Agent", "agent", "确定性", "脚本", "意图识别"]
+        },
+        {
+          "id": "agent-2",
+          "question": "MCP server / client 你落到什么程度？鉴权、错误处理、工具注册怎么做的？",
+          "expected": "有 server/client 落地细节，非只解释概念。",
+          "triggers": ["MCP", "工具", "Skill", "server", "client"]
+        },
+        {
+          "id": "agent-3",
+          "question": "LangGraph 的 checkpoint / state / 路由实际怎么用的？Agent 状态怎么恢复？",
+          "expected": "能讲具体组件与状态恢复，不止框架名词。",
+          "triggers": ["LangGraph", "checkpoint", "state", "状态", "路由", "恢复"]
+        },
+        {
+          "id": "agent-4",
+          "question": "你选的 workflow 工具（比如 Dify/自研）为什么是它？和 LangGraph 比取舍在哪？",
+          "expected": "有真实选型理由（可视化、轻量、单机、快速），非随意。",
+          "triggers": ["Dify", "workflow", "工作流", "define", "轻量", "可视化"]
+        }
+      ]
+    },
+    {
+      "id": "rag",
+      "label": "RAG 检索与数据工程",
+      "questions": [
+        {
+          "id": "rag-1",
+          "question": "BM25 + bge-m3 双路召回为什么并行？RRF 融合的权重怎么定的？rerank 选哪个模型、为什么不在第一路直接搜？",
+          "expected": "能解释路数/融合/重排的分工与选型，非罗列名词。",
+          "triggers": ["BM25", "bge", "召回", "RRF", "融合", "rerank", "重排", "Top", "Milvus"]
+        },
+        {
+          "id": "rag-2",
+          "question": "文档切割/分块怎么保证语义完整？table/PDF/长文档分别怎么处理？知识图谱你实际做过吗？",
+          "expected": "分块策略（按标题/语义/表格结构化）、图谱方案（Neo4j 三元组）有实感；没做过就诚实说明思路。",
+          "triggers": ["分块", "切割", "OCR", "表格", "PDF", "知识图谱", "Neo4j", "向量"]
+        },
+        {
+          "id": "rag-3",
+          "question": "为 RAG 用的数据从哪来？怎么清洗/去重/标注？敏感数据怎么处理？",
+          "expected": "来源、清洗、少量标注用于验证、脱敏意识——稀缺的数据工程能力。",
+          "triggers": ["数据", "清洗", "标注", "脱敏", "开源", "客户"]
+        }
+      ]
+    }
+  ]
+}
