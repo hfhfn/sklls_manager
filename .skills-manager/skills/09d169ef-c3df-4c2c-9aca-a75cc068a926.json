@@ -4,7 +4,9 @@
   "path": "interview-coaching",
   "path_key": "interview-coaching",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "教学"
+  ],
   "source": {
     "type": "local",
     "ref": null,

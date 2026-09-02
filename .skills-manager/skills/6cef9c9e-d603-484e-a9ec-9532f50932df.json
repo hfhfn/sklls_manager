@@ -4,7 +4,9 @@
   "path": "local-audio-transcribe",
   "path_key": "local-audio-transcribe",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "教学"
+  ],
   "source": {
     "type": "local",
     "ref": null,
