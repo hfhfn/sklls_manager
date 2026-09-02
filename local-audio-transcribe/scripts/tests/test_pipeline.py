@@ -1,6 +1,6 @@
 """
 Unit tests for the transcription pipeline. Standard-library only, never loads ASR models.
-Run from project root with:  python -m pytest tests
+Run directly with:  python "$SK/scripts/tests/test_pipeline.py"
 """
 import json
 import sys
