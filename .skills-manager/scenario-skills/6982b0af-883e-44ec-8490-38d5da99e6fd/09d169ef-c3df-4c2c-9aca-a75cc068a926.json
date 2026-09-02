@@ -1,14 +1,14 @@
 {
   "schema_version": 1,
   "scenario_id": "6982b0af-883e-44ec-8490-38d5da99e6fd",
-  "skill_id": "c55e2f2c-ea95-4b0b-b2a1-b6e97ca045c6",
-  "sort_order": 4,
+  "skill_id": "09d169ef-c3df-4c2c-9aca-a75cc068a926",
+  "sort_order": 1,
   "tools": {
     "claude_code": true,
     "codex": true,
     "deepseek_harness": true,
     "github_copilot": true,
-    "hermes": false,
+    "hermes": true,
     "opencode": true,
     "trae_cn": true
   }
