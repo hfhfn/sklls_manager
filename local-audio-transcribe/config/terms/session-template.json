@@ -1,0 +1,10 @@
+{
+  "schema_version": "terms-v2",
+  "scope": "session",
+  "session": {
+    "audio_sha256": "",
+    "created_at": "",
+    "note": "Bind this file to one audio run before use."
+  },
+  "terms": []
+}

@@ -1,0 +1,21 @@
+# 本地转录依赖参考（非自动安装；用已有 conda 环境 llm_gpu）
+# 运行环境：Windows 11 / NVIDIA RTX 5060 8GB / CUDA 12.8
+# 文本与对齐/评分逻辑只用 Python 标准库。以下为 GPU 语音引擎所需。
+
+# --- 主引擎：FunASR（中文 ASR + VAD + 标点 + cam++ 说话人） ---
+torch>=2.9,<3            # 需 CUDA 支持的 PyTorch（2.9.1+cu128，本机已验证）
+funasr==1.3.14           # 阿里达摩院；SenseVoiceSmall 在该版本 diarization 路径有 bug，默认用 paraformer-zh
+modelscope>=1.31         # 下载模型到 models/ms（离线时用 --cache-dir / MODELSCOPE_CACHE）
+
+# --- 复核引擎（可选）---
+# faster-whisper==1.2.1  # CTranslate2 版 Whisper large-v3，用于中英术语复核；无说话人区分
+# av                     # faster-whisper 音频解码依赖
+# onnxruntime            #（faster-whisper 依赖链之一）
+
+# --- HTTP 服务（可选）---
+# fastapi
+# uvicorn
+# python-multipart      # POST /transcribe 的 multipart 上传解析
+
+# --- 测试（可选）---
+# pytest                 # 运行 tests/test_pipeline.py（文本逻辑无 GPU）

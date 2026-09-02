@@ -20,9 +20,10 @@ description: 把面试录音转录的成果往前推进两级——自动做「�
 
 ## 前置
 
-1. 转录工具根：`TRANSCRIBE_ROOT` > `RECORD_REVIEW_ROOT` > record_review 默认。确认 `run_funasr.py`/`run_whisper.py` 等在。
-2. 翻译已完成：存在 `funasr.reviewed.json` 与 `alignment.json`（否则按 `local-audio-transcribe` 先跑，48k/立体声输入先过 `scripts/transcode.py` 转 16k mono，兜住 Whisper 448 坑）。
-3. skill 内脚本路径：本 SKILL.md 所在目录的 `scripts/`。记 `$SK = <skill dir>`。
+1. 转录引擎：`local-audio-transcribe` skill（代码在其 `scripts/`，记 `$T = <local-audio-transcribe skill dir>`）；其脚本 `python "$T/scripts/run_funasr.py"` 等、热词/词库在其 `config/`（全局）。
+2. 数据/模型宿主：`RECORD_REVIEW_ROOT` 指向项目 `models/`+`inputs/`+`runs/`（模型权重留项目，录音/产物写项目）。
+3. 翻译已完成：存在 `funasr.reviewed.json` 与 `alignment.json`（否则按 `local-audio-transcribe` 先跑，48k/立体声输入先过本 skill `scripts/transcode.py` 转 16k mono，兜住 Whisper 448 坑）。
+4. 本 skill 内脚本路径：本 SKILL.md 所在目录的 `scripts/`。记 `$SK = <本 skill 目录>`。
 
 ## 流水线（一次性跑完整套；每步有产出，不阻塞）
 
@@ -37,7 +38,7 @@ python "$SK/scripts/transcode.py" <audio> --out <run>/audio_16k.wav   # 自动�
 # 1) 抽确定性证据
 python "$SK/scripts/extract.py" \
   --reviewed <run>/funasr.reviewed.json --alignment <run>/alignment.json \
-  --terms <project terms> --out <run>/interview/evidence.json
+  --terms "$T/config/terms/technical-interview.json" --out <run>/interview/evidence.json
 # 2) 初始化类型化分析骨架
 python "$SK/scripts/analyze_schema.py" --schema "$SK/defaults/analysis-schema.json" \
   --init --target <run>/interview/analysis.json

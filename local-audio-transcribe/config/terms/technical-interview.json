@@ -1,0 +1,909 @@
+{
+  "schema_version": "terms-v2",
+  "dictionary_id": "record-review-technical",
+  "version": 8,
+  "scope": "project",
+  "prompt_text": "本录音涉及 AI 应用开发和多智能体技术。",
+  "terms": [
+    {
+      "term_id": "tech.agent",
+      "canonical": "agent",
+      "aliases": [
+        {
+          "text": "智能体",
+          "status": "approved",
+          "type": "official_alias"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.multi-agent",
+      "canonical": "multi-agent",
+      "aliases": [
+        {
+          "text": "多agent",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.rag",
+      "canonical": "RAG",
+      "aliases": [
+        {
+          "text": "检索增强生成",
+          "status": "approved",
+          "type": "official_alias"
+        },
+        {
+          "text": "IG",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "RNG",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.bert",
+      "canonical": "BERT",
+      "aliases": [
+        {
+          "text": "bird",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.transformer",
+      "canonical": "Transformer",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.pydantic",
+      "canonical": "Pydantic",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.langgraph",
+      "canonical": "LangGraph",
+      "aliases": [
+        {
+          "text": "long graph",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "long grab",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "longgraph",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "logugraph",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "lgurap",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "lang rup",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "turgop",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.langchain",
+      "canonical": "LangChain",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.react",
+      "canonical": "ReAct",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.deepseek",
+      "canonical": "DeepSeek",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.qwen",
+      "canonical": "Qwen",
+      "aliases": [
+        {
+          "text": "千问",
+          "status": "approved",
+          "type": "official_alias"
+        },
+        {
+          "text": "千万办公",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.memory-saver",
+      "canonical": "MemorySaver",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.checkpoint",
+      "canonical": "checkpoint",
+      "aliases": [
+        {
+          "text": "chain point",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.mcp",
+      "canonical": "MCP",
+      "aliases": [
+        {
+          "text": "OPC",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "MCB",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "MCTMCT",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.kpi",
+      "canonical": "KPI",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.zip",
+      "canonical": "zip",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.async",
+      "canonical": "async",
+      "aliases": [
+        {
+          "text": "异步",
+          "status": "approved",
+          "type": "translation"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.with-retry",
+      "canonical": "with retry",
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.claude-code",
+      "canonical": "Claude Code",
+      "aliases": [
+        {
+          "text": "科洛克",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "clock code",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 80,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.codex",
+      "canonical": "Codex",
+      "aliases": [
+        {
+          "text": "科特莎",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 80,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.milvus",
+      "canonical": "Milvus",
+      "aliases": [
+        {
+          "text": "muvers",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "mill s",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "妙子",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "谬经",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "mirror s",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "mirroors",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.neo4j",
+      "canonical": "Neo4j",
+      "aliases": [
+        {
+          "text": "NEO 四 g",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "NEO4J",
+          "status": "approved",
+          "type": "official_alias"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.bge-m3",
+      "canonical": "bge-m3",
+      "aliases": [
+        {
+          "text": "BGE M3",
+          "status": "approved",
+          "type": "official_alias"
+        },
+        {
+          "text": "BGE-M3",
+          "status": "approved",
+          "type": "official_alias"
+        },
+        {
+          "text": "BGM 三",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "BG 杠三",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "BG 3",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "BGEM 三",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "BGEM三",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.bm25",
+      "canonical": "BM25",
+      "aliases": [
+        {
+          "text": "BM 25",
+          "status": "approved",
+          "type": "official_alias"
+        },
+        {
+          "text": "BM 二五",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.ragas",
+      "canonical": "RAGAS",
+      "aliases": [
+        {
+          "text": "regas",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "rogas",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "mograass",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "等于 s AS",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.cursor",
+      "canonical": "Cursor",
+      "aliases": [
+        {
+          "text": "curser",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.rrf",
+      "canonical": "RRF",
+      "aliases": [
+        {
+          "text": "倒数排名融合",
+          "status": "approved",
+          "type": "translation"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.reranker",
+      "canonical": "reranker",
+      "aliases": [
+        {
+          "text": "重排模型",
+          "status": "approved",
+          "type": "translation"
+        },
+        {
+          "text": "BGE ranker",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.subagent",
+      "canonical": "subagent",
+      "aliases": [
+        {
+          "text": "子agent",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "子 a 阵",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "子代理",
+          "status": "approved",
+          "type": "translation"
+        }
+      ],
+      "category": "technical",
+      "priority": 70,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.pymupdf",
+      "canonical": "PyMuPDF",
+      "aliases": [
+        {
+          "text": "PYMUPDF",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "pdf 提取",
+          "status": "approved",
+          "type": "translation"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "tech.postgresql",
+      "canonical": "PostgreSQL",
+      "aliases": [
+        {
+          "text": "pogreen circle",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "post gray circle",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "pos circle",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "postgray circle",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved"
+    },
+    {
+      "term_id": "project.lora微调",
+      "canonical": "LoRA微调",
+      "aliases": [
+        {
+          "text": "拉尔微调",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "lower微调",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "lower 微调",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "batch approve 2026-08-27"
+      }
+    },
+    {
+      "term_id": "project.lora",
+      "canonical": "LoRA",
+      "aliases": [
+        {
+          "text": "laural",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "batch approve 2026-08-27"
+      }
+    },
+    {
+      "term_id": "project.kvcache",
+      "canonical": "KV cache",
+      "aliases": [
+        {
+          "text": "KV 开始",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 50,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "batch approve 2026-08-27"
+      }
+    },
+    {
+      "term_id": "tech.pytorch",
+      "canonical": "PyTorch",
+      "aliases": [
+        {
+          "text": "拍拓曲",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "content review chenjunzhi 2026-08-31"
+      }
+    },
+    {
+      "term_id": "tech.qwen-local",
+      "canonical": "Qwen 模型本地化部署",
+      "aliases": [
+        {
+          "text": "千万千万模型做了本做做本地化部署",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.qwen2.5",
+      "canonical": "Qwen2.5",
+      "aliases": [
+        {
+          "text": "天维二点五",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.qwen25-mft",
+      "canonical": "Qwen2.5 微调模型",
+      "aliases": [
+        {
+          "text": "微调天龙二点五的模型",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.medical-rag",
+      "canonical": "医疗 RAG 系统",
+      "aliases": [
+        {
+          "text": "医疗与医疗 RNG 六 r 系统",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.full-rag",
+      "canonical": "完整 RAG 链路",
+      "aliases": [
+        {
+          "text": "完整张安 z 链路",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.bm25-bge3",
+      "canonical": "BM25 + bge-m3 双路召回",
+      "aliases": [
+        {
+          "text": "CMF 部加 q 制 EM 三的双路召回",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.ragas-eval",
+      "canonical": "RAGAS 评估",
+      "aliases": [
+        {
+          "text": "i 好像等于 s AS 做评估",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.a2a-proto",
+      "canonical": "A2A 协议",
+      "aliases": [
+        {
+          "text": "一拖 a 一拖 a a to a 那个协议",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.a2a",
+      "canonical": "A2A",
+      "aliases": [
+        {
+          "text": "a to a",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.skill",
+      "canonical": "Skill",
+      "aliases": [
+        {
+          "text": "spell",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.redis",
+      "canonical": "Redis",
+      "aliases": [
+        {
+          "text": "REDX",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.intent",
+      "canonical": "意图识别",
+      "aliases": [
+        {
+          "text": "艺图识别",
+          "status": "approved",
+          "type": "spoken_variant"
+        },
+        {
+          "text": "异意图识别",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    },
+    {
+      "term_id": "tech.rerun",
+      "canonical": "重跑",
+      "aliases": [
+        {
+          "text": "冲跑",
+          "status": "approved",
+          "type": "spoken_variant"
+        }
+      ],
+      "category": "technical",
+      "priority": 60,
+      "enabled": true,
+      "status": "approved",
+      "source": {
+        "note": "review weixinlong-boyan 2026-09-01"
+      }
+    }
+  ],
+  "parent_hash": "2ee80858e35d1c81f13828047c0bb2888613dd398ed36c00414cd3b55385c865",
+  "updated_at": "2026-09-02T02:05:00+00:00"
+}

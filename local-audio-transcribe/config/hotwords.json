@@ -1,0 +1,33 @@
+{
+  "schema_version": "hotwords-v1",
+  "prompt_text": "请保留中文 AI 技术面试中的英文术语标准拼写。",
+  "terms": [
+    {"canonical":"agent","aliases":["a站","a阵","a tion","a卷","a镇","a坎","a震","智能体"],"category":"technical"},
+    {"canonical":"multi-agent","aliases":["多agent","多 a tion"],"category":"technical"},
+    {"canonical":"RAG","aliases":["rag","IG","REG","IAG","检索增强生成"],"category":"technical"},
+    {"canonical":"BERT","aliases":["bert","波尔特"],"category":"technical"},
+    {"canonical":"Transformer","aliases":["transformer"],"category":"technical"},
+    {"canonical":"NLP","aliases":["nlp"],"category":"technical"},
+    {"canonical":"AI","aliases":["ai"],"category":"technical"},
+    {"canonical":"OCR","aliases":["ocr","pad OCR"],"category":"technical"},
+    {"canonical":"API","aliases":["api"],"category":"technical"},
+    {"canonical":"JSON","aliases":["json","jason"],"category":"technical"},
+    {"canonical":"MCP","aliases":["mcp"],"category":"technical"},
+    {"canonical":"KPI","aliases":["kpi"],"category":"technical"},
+    {"canonical":"Pydantic","aliases":["pydantic","pandantic","panellic","patantic","排单体"],"category":"technical"},
+    {"canonical":"LangGraph","aliases":["langgraph","long graph","狼瓜","long gram"],"category":"technical"},
+    {"canonical":"LangChain","aliases":["langchain","lang chat","浪泉"],"category":"technical"},
+    {"canonical":"ReAct","aliases":["react","原ig"],"category":"technical"},
+    {"canonical":"DeepSeek","aliases":["deepseek","deep sag","deep sig","deep-seq"],"category":"technical"},
+    {"canonical":"Qwen","aliases":["千问"],"category":"technical"},
+    {"canonical":"MemorySaver","aliases":["memory saver","memory server","memory savor"],"category":"technical"},
+    {"canonical":"checkpoint","aliases":["check point"],"category":"technical"},
+    {"canonical":"企查查","aliases":["喜察察","齐查查"],"category":"business"},
+    {"canonical":"拍卖公司","aliases":["拍照公司"],"category":"business"},
+    {"canonical":"社会统一信用代码","aliases":["社会统一性","社会统一信用编码"],"category":"business"},
+    {"canonical":"zip","aliases":["ZIP","z 方"],"category":"technical"},
+    {"canonical":"Python","aliases":["python","pson","typhon"],"category":"technical"},
+    {"canonical":"async","aliases":["异步"],"category":"technical"},
+    {"canonical":"with retry","aliases":["with with retry"],"category":"technical"}
+  ]
+}

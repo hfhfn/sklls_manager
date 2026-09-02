@@ -18,9 +18,9 @@ description: 将本地音频录音（.wav、.m4a、.mp3、.flac、.ogg、.aac �
 
 ## 前置检查
 
-2. 查找工具根目录：优先使用环境变量 `RECORD_REVIEW_ROOT`，否则使用当前项目路径 `C:\Users\hfhfn\Desktop\code\students_project\record_review`。确认其中有 `run_funasr.py`、`run_whisper.py`、`manage_terms.py` 和 `suggest_terms.py`。
-3. 使用已有 conda 环境（本机通常是 `llm_gpu`），确认 FunASR、torch 和可选 faster-whisper 已安装。
-4. 默认离线：要求模型已在本地缓存或通过 `--model-path` 指定。离线模式下模型缺失应立即失败，不能偷偷联网下载。
+2. 本 skill 自包含：命令 `python "$SK\scripts\xxx.py" ...` 中的 `$SK` = 本 SKILL.md 所在目录（`~\.skills-manager\skills\local-audio-transcribe`）。
+3. 数据/模型宿主：env `RECORD_REVIEW_ROOT`（==`TRANSCRIBE_ROOT`）指向存放 `models\`（FunASR/VAD 模型缓存）、`inputs\`（录音）、`runs\`（转录产物）的项目目录；`--cache-dir`/`MODELSCOPE_CACHE` 指到 `<数据根>\models\ms`，Whisper 模型在 `<数据根>\models\hf`。代码、词库、热词、模板都随 skill（全局），**只有模型权重与录音/产物留在项目**。
+4. 默认离线：要求模型已在本地缓存或通过 `--model-path`/`--cache-dir` 指定。离线模式下模型缺失应立即失败，不能偷偷联网下载。
 5. 输出写入用户指定的独立目录，例如 `runs\2026-08-20-interview\`，不要复用或覆盖项目的 `output\` 历史结果。
 
 ## 标准流程
@@ -28,9 +28,9 @@ description: 将本地音频录音（.wav、.m4a、.mp3、.flac、.ogg、.aac �
 ### A. FunASR 主稿
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\run_funasr.py" "C:\path\recording.m4a" `
+python "$env:SK\scripts\run_funasr.py" "C:\path\recording.m4a" `
   --out-dir "C:\path\run" --out-label funasr `
-  --spk-num 2 --hotwords-file "$env:RECORD_REVIEW_ROOT\config\hotwords.json" `
+  --spk-num 2 --hotwords-file "$env:SK\config\hotwords.json" `
   --cache-dir "$env:RECORD_REVIEW_ROOT\models\ms" --offline
 ```
 
@@ -39,7 +39,7 @@ python "$env:RECORD_REVIEW_ROOT\run_funasr.py" "C:\path\recording.m4a" `
 ### B. 轮次视图
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\postprocess.py" `
+python "$env:SK\scripts\postprocess.py" `
   --json "C:\path\run\funasr.raw.json" `
   --out "C:\path\run\funasr.turns.txt" `
   --out-json "C:\path\run\funasr.turns.json"
@@ -50,19 +50,19 @@ python "$env:RECORD_REVIEW_ROOT\postprocess.py" `
 ### C. Whisper 术语复核（可选）
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\run_whisper.py" "C:\path\recording.m4a" `
+python "$env:SK\scripts\run_whisper.py" "C:\path\recording.m4a" `
   --out-dir "C:\path\run" --out-label whisper `
-  --hotwords-file "$env:RECORD_REVIEW_ROOT\config\hotwords.json" `
+  --hotwords-file "$env:SK\config\hotwords.json" `
   --word-timestamps --offline
 ```
 
 ### D. 对齐候选（双引擎时运行）
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\align_transcripts.py" `
+python "$env:SK\scripts\align_transcripts.py" `
   --funasr-json "C:\path\run\funasr.raw.json" `
   --whisper-json "C:\path\run\whisper.raw.json" `
-  --terms-file "$env:RECORD_REVIEW_ROOT\config\hotwords.json" `
+  --terms-file "$env:SK\config\hotwords.json" `
   --out-json "C:\path\run\alignment.json" `
   --out-md "C:\path\run\alignment.md"
 ```
@@ -72,9 +72,9 @@ python "$env:RECORD_REVIEW_ROOT\align_transcripts.py" `
 ### E. 质量评分（有人工参考稿时）
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\score_transcript.py" `
+python "$env:SK\scripts\score_transcript.py" `
   --ref "C:\path\reference.txt" --hyp-json "C:\path\run\funasr.raw.json" `
-  --terms-file "$env:RECORD_REVIEW_ROOT\config\hotwords.json" `
+  --terms-file "$env:SK\config\hotwords.json" `
   --out-json "C:\path\run\funasr.score.json" --engine-label funasr
 ```
 
@@ -97,7 +97,7 @@ python "$env:RECORD_REVIEW_ROOT\score_transcript.py" `
 1. **建档**：新录音若有对应人工参考稿，把参考稿拷入 skill（`evals/reference/<case>.txt`），并追加一条 `evals/evals.json` 用例记录 gold 路径与最低术语召回期望。
 2. **互证**：对最终稿运行互证报告，定位差异段与漏掉的术语：
    ```powershell
-   python "$env:RECORD_REVIEW_ROOT\compare_ref.py" `
+   python "$env:SK\scripts\compare_ref.py" `
      --ref "C:\path\reference.txt" --hyp-json "C:\path\run\funasr.reviewed.json" `
      --terms-file "C:\path\config\terms\technical-interview.json" `
      --out-md "C:\path\run\reference.compare.md"
@@ -125,13 +125,13 @@ global 通用词库 < project 项目词库 < session 本次录音词库 < 本次
 需要管理词典时使用项目工具：
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\manage_terms.py" resolve `
-  --global-file "$env:USERPROFILE\.claude\skills\local-audio-transcribe\config\global-terms.json" `
+python "$env:SK\scripts\manage_terms.py" resolve `
+  --global-file "$env:SK\config\global-terms.json" `
   --project-file "C:\path\project\config\terms\technical.json" `
   --session-file "C:\path\run\session-terms.json" `
   --out "C:\path\run\terms-snapshot.json"
 
-python "$env:RECORD_REVIEW_ROOT\suggest_terms.py" `
+python "$env:SK\scripts\suggest_terms.py" `
   --alignment-json "C:\path\run\alignment.json" `
   --terms-file "C:\path\project\config\terms\technical.json" `
   --out "C:\path\run\term-suggestions.json"
@@ -140,7 +140,7 @@ python "$env:RECORD_REVIEW_ROOT\suggest_terms.py" `
 人工确认后才显式批准，并默认沉淀到 project：
 
 ```powershell
-python "$env:RECORD_REVIEW_ROOT\manage_terms.py" approve `
+python "$env:SK\scripts\manage_terms.py" approve `
   --suggestions "C:\path\run\term-suggestions.json" `
   --candidate-id term-candidate-00001 --canonical "官方术语" `
   --scope project --target-file "C:\path\project\config\terms\technical.json" `
