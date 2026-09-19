@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "cfb49a3c-7d01-41dc-bc3b-89efd6d7385d",
+  "path": "feishu-doc-migration",
+  "path_key": "feishu-doc-migration",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
