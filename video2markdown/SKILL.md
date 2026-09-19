@@ -80,6 +80,22 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
   依赖：`pip install playwright`（驱动本机 Edge）。
 - **抖音国内站点不走代理**：本地 Clash 代理(127.0.0.1:7890)会绕挂国内站，
   下载/探测抖音用**直连**即可（curl/Playwright 直连返回 200）。`douyin_download.py` 入口自清代理环境变量。
+- **精确阶段依赖 anyio（llm_gpu 环境缺会报 `No module named 'anyio.to_thread'`）**：refine 用
+  openai/httpx 调 LLM，依赖 `anyio`。本机 `llm_gpu` conda 环境曾**没装 anyio**，只靠用户目录
+  `AppData\Roaming\Python\Python312\site-packages\anyio` 一份不完整的 namespace 撑，导致
+  `import anyio.to_thread` 挂、refine 每次都哭着回退成原始组装。**治本**：往 conda 环境装一个
+  完整版（conda 的 site-packages 优先于 user site，不再踩坏的那份）：
+  `/d/software/miniconda3/envs/llm_gpu/python.exe -m pip install "anyio>=3.8,<5"`。
+  refine 失败时先用这条补依赖重试，别改提示词。
+- **抖音登录墙误判"图文帖/无视频"（已修，涉及短链下载）**：无痕 Edge 撞上登录墙时页面只渲染空壳
+  （`video` src 是占位 `uuu_265.mp4`、`title` 空、body 是导航页脚），`performance` 资源里抓不到
+  `douyinvod` 条目，旧版 `grab_cdn` 就误判成**图文帖/无视频**并退出，即便 API 里其实有视频。
+  已给 `douyin_download.py` 加兜底：performance 兜空时，在页面内**同源 fetch `aweme/v1/web/aweme/detail`**
+  （带上浏览器上下文的 cookies/signature），取 `aweme_detail.video.play_addr.url_list[0]`（或
+  `video_id` 拼 `/aweme/v1/play/?video_id=...`）作下载 URL、`desc` 作标题；只有 `images` 字段非空
+  才算真图文帖。兜底下载的 play_addr 是「视频+人声已混轨」的 mp4，可直接当成品。排查：页面
+  `document.querySelector('video')` 存在但 `src` 是 `uuu_265.mp4`、且
+  `performance.getEntriesByType('resource')` 无 `douyinvod` = 典型的被挡；此时走脚本兜底即得视频。
 - **云端 VLM 偶发挂起**：`--vlm on` 会对 ~40–60 帧逐个调免费云端视觉模型，某个请求可能无限挂起
   卡死整条进程。**批量转录用 `--vlm off` 最稳**；单条重点视频再按需 `--vlm on`（配 `timeout 560s` 兜底）。
 - **别用单个超长后台任务跑大批量**：一次后台跑完 N 条视频的长脚本可能被系统 kill（如跑到 ~40 分钟

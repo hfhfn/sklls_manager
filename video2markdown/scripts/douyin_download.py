@@ -34,6 +34,38 @@ for _k in ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY",
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0")
 
+# 兜底：performance 资源里抓不到 douyinvod（页面被登录墙挡住、player 没真正拉流）时，
+# 改用进程内在页面同源 fetch aweme/detail API 拿真实 play_addr / video_id 与标题。
+# 同源 fetch 会带上当前浏览器上下文的 cookies/signature，绕开 yt-dlp 那个"fresh cookies"签名校验。
+# 返回 {video, audio, title, no_video}：no_video=True 表示是真正的图文帖（有 images 字段）。
+API_JS = r"""
+async () => {
+  const uid = '__AWEME__';
+  const u = 'https://www.douyin.com/aweme/v1/web/aweme/detail/'
+      + '?device_platform=webapp&aid=6383&channel=channel_pc_web'
+      + '&aweme_id=' + uid + '&request_source=6';
+  try {
+    const r = await fetch(u, {headers: {'referer': 'https://www.douyin.com/'}});
+    const j = await r.json();
+    const d = j.aweme_detail || j || {};
+    const images = (d.images && d.images.length) || (d.image_post_info ? 1 : 0);
+    let video = '';
+    const v = d.video || {};
+    const play = (v.play_addr && v.play_addr.url_list) || [];
+    const bits = (v.bit_rate || []).filter(b => b && b.play_addr);
+    const bk = bits.length ? (bits[0].play_addr.url_list || []) : [];
+    video = play[0] || bk[0] || '';
+    const vid = v.vid || v.video_id || v.uri || '';
+    if (!video && vid) {
+      video = 'https://www.douyin.com/aweme/v1/play/?video_id=' + vid;
+    }
+    return {video: video, audio: '', title: (d.desc || '').trim(), no_video: images > 0};
+  } catch (e) {
+    return {video: '', audio: '', title: '', no_video: false};
+  }
+}
+"""
+
 
 def resolve_id(s):
     """短链/URL → modal_id（如 v.douyin.com/xxx → 7673474900073434414）"""
@@ -94,7 +126,22 @@ def grab_cdn(modal_id):
                 pg.wait_for_timeout(700)
             pg.wait_for_timeout(2000)
             res = pg.evaluate(js)
-            return res["video"], res["audio"], res["title"]
+            v = res["video"]
+            a = res["audio"]
+            # 兜底：登录墙导致 douyinvod 资源没加载 → 走 aweme/detail API 拿真实视频轨
+            if not v and not a:
+                try:
+                    api = pg.evaluate(API_JS.replace("__AWEME__", modal_id))
+                    if api.get("no_video"):
+                        return "", "", api.get("title", "")
+                    if api.get("video"):
+                        v = api["video"]
+                        a = api.get("audio", "") or ""
+                        if not res.get("title"):
+                            res["title"] = api.get("title", "")
+                except Exception:
+                    pass
+            return v, a, res["title"]
         finally:
             b.close()
 
