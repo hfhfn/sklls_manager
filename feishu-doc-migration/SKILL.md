@@ -119,8 +119,8 @@ jq --version
 
 | 文件 | 平台 | 依赖 | 说明 |
 |------|------|------|------|
-| `Migrate-FeishuDocs.ps1` | Windows | lark-cli + PowerShell | v3.1，含所有修复（方括号通配符 / partial_success / 父失败跳子 / 路径自动检测） |
-| `migrate.sh` | macOS / Linux | lark-cli + jq | v3.1，纯 Bash 脚本，核心功能与容错特性已对齐 |
+| `Migrate-FeishuDocs.ps1` | Windows | lark-cli + PowerShell | v4.0，含所有修复（方括号通配符 / partial_success / 父失败跳子 / 路径自动检测 / docx 独立迁移） |
+| `migrate.sh` | macOS / Linux | lark-cli + jq | v4.0，纯 Bash 脚本，功能与 Windows 版对齐（含 docx 独立迁移） |
 
 ### macOS / Linux 推荐方式
 
@@ -149,6 +149,7 @@ jq --version
 | 内部引用修复 | sub-page-list、@文档引用、文档链接全部更新为新文档地址 |
 | 子节点排序 | 按源文档顺序依次创建，保持完全一致的排列顺序 |
 | 根目录/子节点 | 支持迁移到知识库根目录，或指定父节点下 |
+| 独立 docx 迁移 | 支持非 wiki 的独立 docx 文档（自动识别 `/docx/` URL） |
 | 错误重试 | 指数退避重试机制，默认 3 次 |
 | 部分成功处理 | overwrite 时部分资源上传失败不回滚文档，内容已写入视为成功 |
 | 失败防护 | 父节点迁移失败时自动跳过所有子节点，避免孤儿节点 |
@@ -159,7 +160,7 @@ jq --version
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `-SourceWikiUrls` | ✅ | 源 Wiki URL 数组，可传入多个根文档 |
+| `-SourceWikiUrls` | ✅ | 源文档 URL 数组，支持 Wiki (`/wiki/`) 和 Docx (`/docx/`)，可传入多个根文档 |
 | `-TargetSpaceId` | ✱ | 目标知识库空间 ID（迁移到根目录时用） |
 | `-TargetParentWikiUrl` | ✱ | 目标父节点 Wiki URL（迁移到指定节点下时用） |
 | `-WorkDir` | - | 临时工作目录（默认 `.\lark_migration_temp`） |
@@ -323,6 +324,18 @@ A: 脚本只更新**本次迁移范围内**的文档引用。指向其他外部�
 ### Q: 可以迁移 sheet / bitable / mindnote 等类型吗？
 A: 当前版本仅支持 docx（文档）和 file（文件附件）。其他类型会被跳过，需要时可扩展。
 
+### Q: `my.feishu.cn` 域名的文档是自己的吗？
+A: **不一定**。`my.feishu.cn` 只是浏览时的统一入口域名，不代表文档归属。判断文档是否属于自己，要看文档所在的 `space_id` 是否在自己的知识库列表中。正确做法：用 `lark-cli wiki +node-get --node-token <URL> --as user` 获取文档的 `space_id`，再与 `lark-cli wiki +space-list --as user` 列表对比。
+
+### Q: 什么是 "hermes context" 错误？为什么迁不了？
+A: 这是飞书的 **Hermes 内容安全保护机制**。文档作者开启了高级内容保护（防导出/防复制），API 无法读取文档内容。这种情况**只能手动复制**，或者联系文档作者关闭保护。遇到此错误时，跳过该文档即可。
+
+### Q: 书签里的 URL 打开正常，但 lark-cli 报 "token is too short"？
+A: 书签保存的 URL 可能被截断了一位（正常 wiki token 是 27 位）。从浏览器地址栏重新复制完整 URL 即可。常见于从书签栏导出或第三方工具同步时截断。
+
+### Q: docx 文档迁移后标题为什么是章节名？
+A: 独立的 docx 文档（`/docx/` 路径）没有单独的标题字段，脚本会从正文第一个 `h1` 提取作为文档标题。如果第一个 h1 是章节名（如"一、视频课件资料领取方法"），迁移后的标题就会是章节名。**解决方法**：迁移后在飞书中手动重命名文档标题。
+
 ### Q: 迁移失败了怎么办？
 A: 查看日志文件中的具体错误。常见原因：
 - 权限不足（确认源文档可读、目标空间可写）
@@ -403,6 +416,7 @@ A: 可以。`migrate.sh` 是纯 bash 脚本，只要装了 `lark-cli` 和 `jq` �
 
 | 版本 | 主要变更 |
 |------|---------|
+| v4.0 | 新增独立 docx 文档迁移支持（自动识别 `/docx/` URL）；移除错误的「my.feishu.cn = 自己文档」判断逻辑；实战踩坑经验补充（hermes 保护 / token 截断 / docx 标题提取） |
 | v3.1 | 修复 PowerShell 方括号通配符问题（`[拓展]` 等标题导致 `content.xml` 写入失败）；`Test-Path` 加 `-LiteralPath`；改用 .NET `WriteAllText` 写文件 |
 | v3.0 | wiki node-create + overwrite 方案；支持根目录迁移；内部引用修复（sub-page-list / cite / a 链接）；子节点排序；部分资源失败不回滚；父失败跳子；lark-cli 路径自动检测 |
 | v2.0 | 新增 macOS / Linux 纯 Bash 版本（migrate.sh），不依赖 PowerShell |

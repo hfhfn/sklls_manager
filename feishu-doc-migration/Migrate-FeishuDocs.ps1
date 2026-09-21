@@ -1120,6 +1120,153 @@ function Invoke-MigrateTree {
     Write-Log "========================================" -Level SUCCESS
 }
 
+function Invoke-MigrateDocxStandalone {
+    param(
+        [string]$DocxUrl,
+        [string]$TargetParentToken,
+        [string]$RootWorkDir
+    )
+    <#
+    .DESCRIPTION
+    迁移独立的 docx 文档（非 wiki 节点）到目标知识库
+    流程：获取内容 -> 下载图片/附件 -> 创建 wiki 节点 -> 填充内容
+    #>
+
+    # 从 URL 中提取 token
+    if ($DocxUrl -match '/docx/([A-Za-z0-9]+)') {
+        $docxToken = $matches[1]
+    } else {
+        Write-Log "无法解析 docx URL: $DocxUrl" -Level ERROR
+        $Script:FailedCount++
+        return
+    }
+
+    Write-Log "迁移独立 docx: $DocxUrl" -Level INFO
+
+    # 1. 获取文档内容（用 docs +fetch）
+    $docContent = Get-DocContent -DocUrlOrToken $DocxUrl
+    if (-not $docContent) {
+        Write-Log "无法读取 docx 内容: $DocxUrl" -Level ERROR
+        $Script:FailedCount++
+        return
+    }
+
+    $xml = $docContent.content
+    $docId = $docContent.document_id
+
+    # 尝试从 XML 中提取标题
+    $title = "未命名文档"
+    if ($xml -match '<h1[^>]*>(.*?)</h1>') {
+        $title = $matches[1] -replace '<[^>]+>', ''
+    } elseif ($xml -match '<title[^>]*>(.*?)</title>') {
+        $title = $matches[1] -replace '<[^>]+>', ''
+    }
+    # 去掉空白字符
+    $title = $title.Trim()
+    if ([string]::IsNullOrWhiteSpace($title) -or $title.Length -gt 100) {
+        $title = "文档_$docxToken"
+    }
+
+    Write-Log "文档标题: $title" -Level INFO
+    Write-Log "文档 ID: $docId" -Level INFO
+
+    $safeTitle = SafeFileName $title
+    $docDirName = "{0}_{1}" -f $docxToken.Substring(0, [Math]::Min(8, $docxToken.Length)), $safeTitle
+    $docWorkDir = Join-Path $RootWorkDir $docDirName
+    if (-not (Test-Path -LiteralPath $docWorkDir)) {
+        New-Item -ItemType Directory -Path $docWorkDir -Force | Out-Null
+    }
+
+    # 2. 提取并下载图片
+    $imageTokens = Extract-ImageTokens -XmlContent $xml
+    $tokenToPath = @{}
+
+    if ($imageTokens.Count -gt 0) {
+        Write-Log "  发现 $($imageTokens.Count) 张图片，开始下载..." -Level INFO
+        $imgDir = Join-Path $docWorkDir "images"
+        if (-not (Test-Path -LiteralPath $imgDir)) {
+            New-Item -ItemType Directory -Path $imgDir -Force | Out-Null
+        }
+
+        for ($i = 0; $i -lt $imageTokens.Count; $i++) {
+            $token = $imageTokens[$i]
+            $imgOutput = Join-Path $imgDir "img_$i"
+            $shortToken = $token.Substring(0, [Math]::Min(12, $token.Length))
+            Write-ProgressBar -Current ($i + 1) -Total $imageTokens.Count -Activity "下载图片" -Status $shortToken
+            $downloaded = Invoke-MediaDownload -Token $token -OutputPath $imgOutput
+            if ($downloaded) {
+                $tokenToPath[$token] = $downloaded
+            }
+            else {
+                Write-Log "  图片下载失败: $token" -Level WARN
+            }
+        }
+        Write-Log "  图片下载完成: $($tokenToPath.Count)/$($imageTokens.Count) 成功" -Level INFO
+    }
+
+    # 3. 提取并下载文件附件
+    $sourceTokens = Extract-SourceTokens -XmlContent $xml
+    if ($sourceTokens.Count -gt 0) {
+        Write-Log "  发现 $($sourceTokens.Count) 个附件，开始下载..." -Level INFO
+        $fileDir = Join-Path $docWorkDir "files"
+        if (-not (Test-Path -LiteralPath $fileDir)) {
+            New-Item -ItemType Directory -Path $fileDir -Force | Out-Null
+        }
+
+        for ($i = 0; $i -lt $sourceTokens.Count; $i++) {
+            $src = $sourceTokens[$i]
+            $baseName = if ($src.name) { SafeFileName $src.name } else { "file_$i" }
+            $fileOutput = Join-Path $fileDir $baseName
+            Write-ProgressBar -Current ($i + 1) -Total $sourceTokens.Count -Activity "下载附件" -Status $baseName
+            $downloaded = Invoke-MediaDownload -Token $src.token -OutputPath $fileOutput
+            if ($downloaded) {
+                $tokenToPath[$src.token] = $downloaded
+                $pattern = '(<source\s+[^>]*)token="' + [regex]::Escape($src.token) + '"([^>]*name="[^"]*"[^>]*>)'
+                $relativePath = Resolve-RelativePath -From $docWorkDir -To $downloaded
+                $safePath = [System.Security.SecurityElement]::Escape($relativePath)
+                $replacement = "`$1path=`"@./$safePath`"`$2"
+                $xml = [regex]::Replace($xml, $pattern, $replacement, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+            }
+            else {
+                Write-Log "  附件下载失败: $($src.token) ($($src.name))" -Level WARN
+            }
+        }
+    }
+
+    # 4. 在目标知识库创建文档并填充内容
+    $created = New-MigratedDocument -Title $title -XmlContent $xml `
+        -TargetSpaceId $Script:TargetSpaceIdResolved `
+        -TargetParentToken $TargetParentToken `
+        -DocWorkDir $docWorkDir `
+        -TokenToLocalPath $tokenToPath
+
+    if ($created) {
+        Write-Log ""
+        Write-Log "  迁移成功: $title" -Level SUCCESS
+        Write-Log "    Wiki: $($created.url)" -Level SUCCESS
+        $Script:MigratedCount++
+
+        $Script:MigratedMap[$docxToken] = @{
+            title           = $title
+            source_url      = $DocxUrl
+            source_obj_type = "docx"
+            target_url      = $created.url
+            target_node_token = $created.node_token
+            target_obj_token  = $created.document_id
+            status          = "success"
+        }
+    }
+    else {
+        Write-Log "  迁移失败: $title" -Level ERROR
+        $Script:FailedCount++
+        $Script:MigratedMap[$docxToken] = @{
+            title      = $title
+            source_url = $DocxUrl
+            status     = "failed"
+        }
+    }
+}
+
 # ============================================================
 # 主入口
 # ============================================================
@@ -1179,6 +1326,36 @@ function Main {
         Write-Log "开始迁移: $sourceUrl" -Level INFO
         Write-Log "========================================" -Level INFO
 
+        # 判断 URL 类型
+        $isDocx = $false
+        if ($sourceUrl -match '/docx/') {
+            $isDocx = $true
+        }
+
+        # 如果是 docx 文档（非 wiki），走独立迁移路径
+        if ($isDocx) {
+            $Script:MigratedCount = 0
+            $Script:FailedCount = 0
+            $Script:SkippedCount = 0
+            $Script:TotalDocs = 1
+            $Script:TotalFiles = 0
+
+            $rootWorkDir = $absWorkDir
+            Invoke-MigrateDocxStandalone -DocxUrl $sourceUrl `
+                -TargetParentToken $Script:TargetParentToken `
+                -RootWorkDir $rootWorkDir
+
+            Write-Log ""
+            Write-Log "========================================" -Level SUCCESS
+            Write-Log "迁移完成！" -Level SUCCESS
+            Write-Log "  总计成功: $Script:MigratedCount" -Level SUCCESS
+            Write-Log "  失败: $Script:FailedCount" -Level ERROR
+            Write-Log "  跳过: $Script:SkippedCount" -Level WARN
+            Write-Log "========================================" -Level SUCCESS
+            continue
+        }
+
+        # Wiki 文档：走原有的递归迁移路径
         $sourceInfo = Get-WikiNodeInfo -NodeTokenOrUrl $sourceUrl
         if (-not $sourceInfo) {
             Write-Log "无法解析源文档: $sourceUrl，跳过" -Level ERROR

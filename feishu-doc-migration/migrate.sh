@@ -1,8 +1,9 @@
 #!/bin/bash
 # ============================================================
-# 飞书文档迁移工具 - 纯 Bash 版本
+# 飞书文档迁移工具 - 纯 Bash 版本 v4.0
 # 依赖: lark-cli, jq
 # 支持: macOS / Linux
+# 功能: wiki 递归迁移 + 独立 docx 迁移 + 图片/附件 + 内部引用修复
 # ============================================================
 
 set -euo pipefail
@@ -733,6 +734,191 @@ migrate_doc() {
 }
 
 # ============================================================
+# 迁移独立 docx 文档（非 wiki 节点）
+# ============================================================
+# 用法: migrate_standalone_docx <docx_url> <tgt_parent_token> <target_space> <root_work_dir>
+migrate_standalone_docx() {
+    local docx_url="$1"
+    local tgt_parent_token="$2"
+    local target_space="$3"
+    local root_work_dir="$4"
+
+    log_info "迁移独立 docx: $docx_url"
+
+    # 从 URL 提取 token
+    local docx_token
+    if [[ "$docx_url" =~ /docx/([A-Za-z0-9]+) ]]; then
+        docx_token="${BASH_REMATCH[1]}"
+    else
+        log_error "无法从 URL 提取 docx token: $docx_url"
+        FAILED_DOCS=$((FAILED_DOCS + 1))
+        return 1
+    fi
+
+    # 1. 获取文档内容
+    local xml_content
+    if ! get_doc_content xml_content "$docx_token"; then
+        log_error "无法读取 docx 内容: $docx_url"
+        FAILED_DOCS=$((FAILED_DOCS + 1))
+        return 1
+    fi
+
+    # 从 XML 提取标题（第一个 h1，没有就用 token）
+    local title
+    title=$(echo "$xml_content" | grep -oP '<h1[^>]*>\K.*?(?=</h1>)' 2>/dev/null | head -1 | sed 's/<[^>]*>//g')
+    if [ -z "$title" ]; then
+        title=$(echo "$xml_content" | grep -oP '<title[^>]*>\K.*?(?=</title>)' 2>/dev/null | head -1 | sed 's/<[^>]*>//g')
+    fi
+    title=$(echo "$title" | xargs echo -n 2>/dev/null || echo "$title")
+    if [ -z "$title" ] || [ ${#title} -gt 100 ]; then
+        title="文档_${docx_token:0:8}"
+    fi
+
+    log_info "文档标题: $title"
+    log_info "文档 ID: $docx_token"
+
+    # 准备工作目录
+    local safe_title
+    safe_title=$(echo "$title" | tr '/\\:*?"<>| ' '_' | cut -c1-50)
+    local doc_work_dir="${root_work_dir}/${docx_token:0:8}_${safe_title}"
+    mkdir -p "$doc_work_dir"
+
+    local xml_file="$doc_work_dir/source.xml"
+    echo "$xml_content" > "$xml_file"
+
+    # 2. 提取并下载图片
+    local img_tokens_file="$doc_work_dir/image_tokens.txt"
+    extract_image_tokens "$xml_file" "$img_tokens_file"
+
+    local img_count
+    img_count=$(wc -l < "$img_tokens_file" | tr -d ' ')
+    if [ "$img_count" -gt 0 ]; then
+        log_info "  发现 $img_count 张图片，开始下载..."
+        mkdir -p "$doc_work_dir/images"
+
+        local img_idx=0
+        while IFS= read -r img_token; do
+            [ -z "$img_token" ] && continue
+            img_idx=$((img_idx + 1))
+            local img_file="$doc_work_dir/images/img_${img_idx}.bin"
+            if download_image "$img_token" "$img_file"; then
+                :
+            else
+                log_warn "  图片 $img_idx/$img_count 下载失败，跳过"
+            fi
+        done < "$img_tokens_file"
+        log_info "  图片下载完成"
+    fi
+
+    # 3. 提取并下载文件附件（source token）
+    local file_tokens_file="$doc_work_dir/file_tokens.txt"
+    # 匹配 <source token="..." name="...">
+    grep -oP '<source[^>]*token="[^"]*"[^>]*name="[^"]*"' "$xml_file" 2>/dev/null | \
+        while IFS= read -r line; do
+            local ftkn fname
+            ftkn=$(echo "$line" | grep -oP 'token="[^"]*"' | sed 's/token="//;s/"$//')
+            fname=$(echo "$line" | grep -oP 'name="[^"]*"' | sed 's/name="//;s/"$//')
+            echo "$ftkn|$fname"
+        done > "$file_tokens_file" 2>/dev/null || true
+
+    local file_count
+    file_count=$(wc -l < "$file_tokens_file" | tr -d ' ')
+    if [ "$file_count" -gt 0 ]; then
+        log_info "  发现 $file_count 个附件，开始下载..."
+        mkdir -p "$doc_work_dir/files"
+
+        local file_idx=0
+        while IFS='|' read -r ftkn fname; do
+            [ -z "$ftkn" ] && continue
+            file_idx=$((file_idx + 1))
+            local safe_fname
+            safe_fname=$(echo "$fname" | tr '/\\:*?"<>|' '_')
+            local ffile="$doc_work_dir/files/${safe_fname}"
+            if download_file_attachment "$ftkn" "$ffile"; then
+                # 替换 XML 中的 token 为 path
+                local rel_path="./files/${safe_fname}"
+                sed -i "s|token=\"$ftkn\"|path=\"@$rel_path\"|g" "$xml_file"
+            else
+                log_warn "  附件 $file_idx/$file_count 下载失败: $fname"
+            fi
+        done < "$file_tokens_file"
+    fi
+
+    # 4. 创建目标 wiki 节点
+    local create_result
+    if ! create_wiki_node create_result "$target_space" "$title" "docx" "$tgt_parent_token"; then
+        log_error "创建目标节点失败: $title"
+        FAILED_DOCS=$((FAILED_DOCS + 1))
+        return 1
+    fi
+
+    local tgt_node_token tgt_doc_token
+    tgt_node_token=$(echo "$create_result" | jq -r '.data.node_token // ""')
+    tgt_doc_token=$(echo "$create_result" | jq -r '.data.obj_token // ""')
+
+    if [ -z "$tgt_node_token" ] || [ -z "$tgt_doc_token" ]; then
+        log_error "创建节点后未获取到 token"
+        FAILED_DOCS=$((FAILED_DOCS + 1))
+        return 1
+    fi
+
+    log_info "  目标节点创建成功: $tgt_node_token"
+
+    # 5. 上传图片并替换 token
+    if [ "$img_count" -gt 0 ]; then
+        log_info "  上传图片并替换引用..."
+        local img_idx=0
+        while IFS= read -r img_token; do
+            [ -z "$img_token" ] && continue
+            img_idx=$((img_idx + 1))
+            local img_file="$doc_work_dir/images/img_${img_idx}.bin"
+            if [ -f "$img_file" ] && [ -s "$img_file" ]; then
+                local new_img_token
+                if upload_image "$tgt_doc_token" "$img_file" new_img_token; then
+                    sed -i "s|src=\"$img_token\"|src=\"$new_img_token\"|g" "$xml_file"
+                    sed -i "s|token=\"$img_token\"|token=\"$new_img_token\"|g" "$xml_file"
+                fi
+            fi
+        done < "$img_tokens_file"
+    fi
+
+    # 6. 写入文档内容
+    log_info "  写入文档内容..."
+    local update_result
+    local update_status=0
+    set +e
+    update_doc_content "$tgt_doc_token" "$xml_file" update_result
+    update_status=$?
+    set -e
+
+    if [ $update_status -eq 1 ]; then
+        log_error "写入文档内容失败: $title"
+        log_warn "  回滚：删除已创建的空节点"
+        lark-cli wiki +node-delete --node-token "https://my.feishu.cn/wiki/$tgt_node_token" --yes --as "$AS_USER" 2>&1 || true
+        FAILED_DOCS=$((FAILED_DOCS + 1))
+        return 1
+    fi
+
+    if [ $update_status -eq 2 ]; then
+        local fail_count
+        fail_count=$(echo "$update_result" | jq '.data.local_resource_failures | length' 2>/dev/null || echo "?")
+        log_warn "  部分成功: $title（$fail_count 个资源失败，文档内容已写入）"
+    fi
+
+    # 7. 保存映射
+    save_wiki_mapping "$docx_token" "$tgt_node_token"
+    save_doc_mapping "$docx_token" "$tgt_doc_token"
+    log_migration_result "$docx_token" "$title" "docx" "$docx_token" "$tgt_node_token" "$tgt_doc_token" "success" "standalone_docx"
+
+    SUCCESS_DOCS=$((SUCCESS_DOCS + 1))
+    TOTAL_DOCS=$((TOTAL_DOCS + 1))
+    log_success "  迁移成功: $title"
+    log_info "    Wiki: https://my.feishu.cn/wiki/$tgt_node_token"
+
+    return 0
+}
+
+# ============================================================
 # 迁移单个文件附件
 # ============================================================
 
@@ -1285,7 +1471,7 @@ main() {
         log_info "目标知识库: $target_space (根目录)"
     fi
 
-    # 第一阶段：迁移每个源文档树
+    # 第一阶段：迁移每个源文档
     local idx=0
     for src_url in "${SOURCE_URLS[@]}"; do
         idx=$((idx + 1))
@@ -1293,6 +1479,21 @@ main() {
         log_info "处理源文档 $idx/${#SOURCE_URLS[@]}: $src_url"
         log_info "========================================"
 
+        # 判断 URL 类型
+        local is_docx=false
+        if [[ "$src_url" =~ /docx/ ]]; then
+            is_docx=true
+        fi
+
+        # 独立 docx 文档：走独立迁移路径
+        if [ "$is_docx" = true ]; then
+            local docx_work_dir="$WORK_DIR/docx_${idx}"
+            mkdir -p "$docx_work_dir"
+            migrate_standalone_docx "$src_url" "$target_parent_token" "$target_space" "$docx_work_dir" || true
+            continue
+        fi
+
+        # Wiki 文档：走原有的递归迁移路径
         # 提取源 wiki token
         local src_token
         src_token=$(extract_wiki_token "$src_url")
