@@ -1,6 +1,6 @@
 ---
 name: video2markdown
-description: 把「本地或在线」视频（抖音/B站/YouTube/本地mp4）转成带「画面内容」的结构化 Markdown。语音识别(本地FunASR)+屏内文字OCR+画面语义描述(免费云端视觉模型)三重提取，按时间线互操作成一份含逐字稿/字幕/幻灯片/代码/画面描述的笔记。当用户给出一段视频文件路径、抖音/B站/YouTube链接，或要求"把视频转成markdown/生成笔记/转录+画面注释"时使用。
+description: 把「本地或在线」视频（抖音/B站/YouTube/本地mp4）转成带「画面内容」的结构化 Markdown。语音识别(本地FunASR)+屏内文字OCR+画面语义描述(免费云端视觉模型)三重提取，按时间线互操作成一份含逐字稿/字幕/幻灯片/代码/画面描述的笔记。抖音**图文帖**(/note/，无视频轨)也能自动抓正文大图+RapidOCR 转成图文笔记。当用户给出一段视频文件路径、抖音/B站/YouTube链接/分享口令、或抖音图文帖链接，或要求"把视频转成markdown/生成笔记/转录+画面注释"时使用。
 ---
 
 # video2markdown — 视频 → 带画面的 Markdown
@@ -19,6 +19,7 @@ description: 把「本地或在线」视频（抖音/B站/YouTube/本地mp4）�
 - "把这个视频转成 markdown / 生成笔记" / "转录一下，最好带画面内容"
 - 给出**本地视频路径**（`.mp4/.mkv/.webm/.mov`…）
 - 给出**在线链接/分享口令**（抖音 `v.douyin.com` / B站 `b23.tv` / YouTube `youtube.com`…）
+- 给出**抖音图文帖链接**（短链展开成 `/note/<id>`，无视频轨）→ 自动抓图+RapidOCR 转图文笔记
 - "把这条课程视频整理成笔记，把 PPT、代码、讲的东西都收进去"
 
 ## 用法（命令行）
@@ -32,7 +33,11 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "C:/path
 # 在线视频（抖音/B站/YouTube 分享口令或链接）
 python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https://v.douyin.com/xxxx/"
 
-# 批量（清单文件），每行一个 本地路径/链接；串行，跳过已产出 md 的，末尾汇总 OK/FAIL/NO_VIDEO
+# 抖音图文帖（/note/，无视频轨）：自动抓正文大图 + RapidOCR → 图文笔记（无需额外命令，同一条命令）
+python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py "https://v.douyin.com/xxxx/"  # 假设展开是/note/<id>
+#   也可直接用 /note/<id> 链接；--note-ocr off 可关闭图文帖自动OCR（按 NO_VIDEO 计数）
+
+# 批量（清单文件），每行一个 本地路径/链接；串行，跳过已产出 md 的，末尾汇总 OK/FAIL/NO_VIDEO/NOTE_OCR
 python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-file 待转录清单.txt
 
 # 常用参数
@@ -40,6 +45,7 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
 --engine sensevoice|faster-whisper|cloud-sensevoice|cloud-tele  # ASR 引擎
 #   本地默认 sensevoice(中文最优)；cloud-sensevoice/cloud-tele 走硅基云端(需余额)
 --vlm on|off                     # 是否启用云端画面语义，默认 on；批量/长任务建议 off 保稳
+--note-ocr on|off                # 抖音图文帖是否自动抓图+RapidOCR，默认 on
 --max-vlm-frames N               # VLM 最多分析帧数，默认 60
 --outdir DIR                     # 输出 md 目录（覆盖配置 output_dir；默认视频旁）
 --keep-intermediate              # 完成后保留 .vid_* 中间产物（默认自动清理）
@@ -96,6 +102,13 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
   才算真图文帖。兜底下载的 play_addr 是「视频+人声已混轨」的 mp4，可直接当成品。排查：页面
   `document.querySelector('video')` 存在但 `src` 是 `uuu_265.mp4`、且
   `performance.getEntriesByType('resource')` 无 `douyinvod` = 典型的被挡；此时走脚本兜底即得视频。
+- **抖音图文帖（/note/）自动转图文笔记（2026-09 新增）**：`video2md.py` 检测到 /note/（下载器返回
+  `NO_VIDEO <uid>`）时，自动改调 `scripts/note_ocr.py`：Playwright(Edge) 打开 note 页 → 滚动触发懒加载 →
+  采集 `<img>` 里 `aweme_images` 的**签名直链**（正文大图）→ **同会话内立即下载**（签名 URL 带短
+  `x-expires`，过期会失效，务必抓帧后马上落地）→ RapidOCR(CPU) 逐张识别 → 产出 `<uid>.md`
+  （`## 图片逐张识别` + `## 全文字合并`），原文配图保留在笔记同目录 `.note_<uid>/`。**不要从
+  `RENDER_DATA` 的 `url_list` 取图**——图文正文大图常只出现在渲染后的 `<img>.currentSrc`，且是 `p3-pc-sign.douyinpic.com`
+  短签名链；用 `images` 字段判空即可（有 video 说明是视频被登录墙挡了，见上一条，勿误判图文）。
 - **云端 VLM 偶发挂起**：`--vlm on` 会对 ~40–60 帧逐个调免费云端视觉模型，某个请求可能无限挂起
   卡死整条进程。**批量转录用 `--vlm off` 最稳**；单条重点视频再按需 `--vlm on`（配 `timeout 560s` 兜底）。
 - **别用单个超长后台任务跑大批量**：一次后台跑完 N 条视频的长脚本可能被系统 kill（如跑到 ~40 分钟
@@ -173,6 +186,7 @@ DSH 的 workspace-write 沙箱只放行工作区内的文件，`~/.video2md/conf
 输入(本地路径 或 分享链接/URL)
   ├─[ingest.py]      本地→校验/探测时长；在线→yt-dlp(代理感知)下载成 mp4
   │                    └ 抖音被 cookie 拦截时 → 自动改 [douyin_download.py] Playwright 抓 CDN 直链→ffmpeg 合并 mp4
+  │                      └ 若判定是图文帖(/note/) → 自动改 [note_ocr.py] 抓正文大图 + RapidOCR → 图文笔记
   ├─[transcribe.py]  ffmpeg→16k WAV → FunASR SenseVoiceSmall(fsmn-vad分段) → transcript.jsonl [{t0,t1,text}]
   ├─[keyframes.py]   ffmpeg 场景检测→代表帧(去重, 30min≈40–70帧)
   ├─[ocr.py]         RapidOCR(CPU) 逐帧→屏内文字(字幕/PPT/代码) + 时间戳；本地弱帧可升云端OCR(需余额)
@@ -181,7 +195,9 @@ DSH 的 workspace-write 沙箱只放行工作区内的文件，`~/.video2md/conf
   └─[refine.py]      (可选) 把原始材料送 agnes 等 LLM 整合：错别字修正/OCR去重/要点归纳 → 最终MD
 ```
 
-产出：`<视频名>.md` + 中间目录 `.vid_intermediates/`（wav/keyframes/frame_meta.json 等，可删）。
+产出：
+- 视频：`<视频名>.md` + 中间目录 `.vid_intermediates/`（wav/keyframes/frame_meta.json 等，可删）。
+- 图文帖：`<uid>.md` + 原文配图目录 `.note_<uid>/`（图片原样保留，笔记同目录）。
 
 ## Markdown 产物结构（standard 档）
 
@@ -218,8 +234,10 @@ title, source, duration, 引擎, 模型…
 - 在线下载走外网，抖音/B站多数可直连；YouTube 需走本机代理 `127.0.0.1:7890`（脚本自动识别内网/外网）。
 - 抖音 web 接口 yt-dlp 常报 `Fresh cookies needed`；已内置自动兜底 → `scripts/douyin_download.py`
   （Playwright 抓 CDN 直链，无需登录）。完整背景见 `references/douyin-cdn-direct.md`。
-  抖音国内 CDN 走**直连**（勿走代理）。图文帖（短链展开成 `/note/<id>`）无视频轨，不转录，需单独抓图 OCR。
-- 批量清单每行一条，用 `--urls-file`；串行、跳过已产出 md 的（幂等）、末尾汇总 OK/FAIL/NO_VIDEO。
+  抖音国内 CDN 走**直连**（勿走代理）。图文帖（短链展开成 `/note/<id>`）无视频轨，
+  `video2md.py` **自动改调 `scripts/note_ocr.py` 抓图+RapidOCR 转图文笔记**（`--note-ocr off` 可关，
+  关则按 NO_VIDEO 算）。
+- 批量清单每行一条，用 `--urls-file`；串行、跳过已产出 md 的（幂等）、末尾汇总 OK/FAIL/NO_VIDEO/NOTE_OCR。
 - 请遵守平台条款与著作权，仅用于个人学习/研究等合法用途。
 - 断点续传：已生成的中间产物自动跳过，可断点重跑。完成后默认自动清理 `.vid_*` 中间产物
   （需保留加 `--keep-intermediate`）。
