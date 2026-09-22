@@ -11,7 +11,8 @@
 
 抖音短链/URL：若 yt-dlp 被 cookie 签名拦截（“Fresh cookies needed”），会自动兜底调用
 scripts/douyin_download.py 走浏览器 CDN 直链下载（需 pip install playwright，驱动本机 Edge/Chrome）。
-图文帖（无视频轨）在批量模式下计为 NO_VIDEO 并跳过；单条模式下会报错并退出。
+图文帖（/note/<id>，无视频轨）自动交 scripts/note_ocr.py 抓正文大图 + RapidOCR 转成 Markdown，
+默认开启（--note-ocr off 可关）；抓不到视频也非图文帖时才计 NO_VIDEO。
 
 中间产物放在 <视频目录>/.vid_<名称>/；默认完成后自动清理（--keep-intermediate 保留）。
 输出默认在视频旁；可用 --outdir 或配置 output_dir 指定目录。
@@ -19,6 +20,7 @@ scripts/douyin_download.py 走浏览器 CDN 直链下载（需 pip install playw
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -60,8 +62,8 @@ def _is_douyin(s):
 
 
 def _douyin_fallback(input_, work_dir, plog):
-    """yt-dlp 被抖音拦截时，用浏览器 CDN 直链下载。返回本地 mp4 绝对路径；
-    图文帖（无视频轨）返回 None（调用方计入 NO_VIDEO 跳过）。"""
+    """yt-dlp 被抖音拦截时，用浏览器 CDN 直链下载。返回 (mp4 绝对路径, 标题, note_uid)。
+    视频成功 → (mp4, title, None)；真图文帖(/note) → (None, None, note_uid)。"""
     dl = str(Path(__file__).resolve().parent / "douyin_download.py")
     py = sys.executable
     env = dict(os.environ)
@@ -71,9 +73,16 @@ def _douyin_fallback(input_, work_dir, plog):
     r = subprocess.run([py, dl, input_, str(work_dir)], env=env,
                        capture_output=True, text=True)
     if r.returncode == 2:
+        # 图文帖：从下载器输出 `NO_VIDEO <uid>` 拿 uid，交由 note_ocr 按图文转
+        uid = None
+        for ln in (r.stdout or "").splitlines():
+            m = re.match(r"NO_VIDEO\s+(\d+)", ln.strip())
+            if m:
+                uid = m.group(1)
+                break
         if plog:
-            plog.log("图文帖无视频，跳过（NO_VIDEO）")
-        return None, ""
+            plog.log(f"图文帖(/note/<{uid}>)，交给图文 OCR（note_ocr）")
+        return None, "", uid
     if r.returncode != 0:
         tail = (r.stdout or r.stderr or "").strip()[-200:]
         if plog:
@@ -88,41 +97,70 @@ def _douyin_fallback(input_, work_dir, plog):
             title = json.loads(mj.read_text(encoding="utf-8")).get("title") or ""
     except Exception:
         title = ""
-    return mp4, title
+    return mp4, title, None
 
 
 def ingest_with_fallback(input_, work_dir, plog):
     """ingest，但在抖音链接被 yt-dlp cookie 拦截时自动落到 CDN 直链。
-    返回 (mp4, meta)；图文帖返回 (None, None)。"""
+    返回 (mp4, meta, note_uid)：视频 → (mp4, meta, None)；图文帖 → (None, None, note_uid)。"""
     try:
-        return ingest(input_, work_dir, progress=plog)
+        mp4, meta = ingest(input_, work_dir, progress=plog)
+        return mp4, meta, None
     except RuntimeError as e:
         if not _is_douyin(input_):
             raise
         if plog:
             plog.log(f"[ingest] 抖音 yt-dlp 失败({str(e)[-80:]})，走浏览器 CDN 直链兜底")
-        mp4, dtitle = _douyin_fallback(input_, work_dir, plog)
-        if mp4 is None:
-            return None, None
+        mp4, dtitle, note_uid = _douyin_fallback(input_, work_dir, plog)
+        if note_uid:
+            return None, None, note_uid
         mp4, meta = ingest(mp4, work_dir, progress=plog)
         if dtitle:
             meta["title"] = dtitle  # 注入真实标题，assemble/refine 就不再拿数字 ID 当标题
-        return mp4, meta
+        return mp4, meta, None
+
+
+def _note_ocr_process(note_uid, input_, outdir, work_dir, cfg, keep):
+    """图文帖：用 note_ocr.py 抓图 + OCR → md。返回状态字符串 note/fail。"""
+    od = outdir or (Path(cfg.get("output_dir")) if cfg.get("output_dir") else Path(work_dir))
+    od = Path(od)
+    od.mkdir(parents=True, exist_ok=True)
+    out_md = od / f"{note_uid}.md"
+    if Path(out_md).exists():
+        print(f"  [note] md 已存在，跳过 OCR: {out_md}", flush=True)
+        return "note"
+    note = str(Path(__file__).resolve().parent / "note_ocr.py")
+    env = dict(os.environ)
+    for k in ("PYTHONPATH", "PYTHONHOME", "VIRTUAL_ENV"):
+        env.pop(k, None)
+    print(f"  [note] 图文帖 → 抓图 + RapidOCR: {out_md}", flush=True)
+    r = subprocess.run([sys.executable, note, input_, str(od)], env=env,
+                       capture_output=True, text=True)
+    if r.returncode == 0:
+        print(f"\nMarkdown: {out_md}", flush=True)
+        return "note"
+    tail = (r.stdout or r.stderr or "").strip()[-300:]
+    print(f"  [note] 图文 OCR 失败(rc={r.returncode}): {tail}", flush=True)
+    return "fail"
 
 
 def process_input(input_, work_dir, outdir, cfg, keep, skip_existing_md=True):
-    """跑通“下载→转录→组装→精修→清理”，返回状态字符串 ok / fail / no_video。"""
+    """跑通“下载→转录→组装→精修→清理”，返回 ok / fail / no_video / note。"""
     work_dir = Path(work_dir)
     outdir = Path(outdir) if outdir else None
     try:
-        res = ingest_with_fallback(input_, work_dir, None)
+        mp4, meta, note_uid = ingest_with_fallback(input_, work_dir, None)
     except RuntimeError as e:
         print(f"  !! 下载失败: {str(e)[-140:]}", flush=True)
         return "fail"
-    if res[0] is None:
+    if note_uid:
+        if not cfg.get("note_ocr", True):
+            print("  !! 图文帖（已禁用 note_ocr）: /note/", flush=True)
+            return "no_video"
+        return _note_ocr_process(note_uid, input_, outdir, work_dir, cfg, keep)
+    if mp4 is None:
         print("  !! 图文帖/无视频", flush=True)
         return "no_video"
-    mp4, meta = res
     inter = get_intermediate_dir(mp4)
     plog = ProgressLog(inter)
     meta["duration"] = meta.get("duration") or probe_duration(mp4) or 0
@@ -177,6 +215,8 @@ def main():
                     default=None, help="ASR引擎：本地 sensevoice(默认)/faster-whisper；云端 cloud-sensevoice/cloud-tele")
     ap.add_argument("--vlm", choices=["on", "off"], default=None,
                     help="是否启用云端画面语义（默认 on）")
+    ap.add_argument("--note-ocr", choices=["on", "off"], default=None,
+                    help="抖音图文帖是否自动走抓图+RapidOCR（默认 on；off 则按原样记为 NO_VIDEO）")
     ap.add_argument("--max-vlm-frames", type=int, default=None)
     ap.add_argument("--out", default=None, help="输出 md 路径（默认在输出目录，名为视频标题.md；批量模式无效）")
     ap.add_argument("--outdir", default=None, help="输出 md 目录（覆盖配置 output_dir；默认视频旁）")
@@ -192,6 +232,7 @@ def main():
     if a.depth: cfg["depth"] = a.depth
     if a.engine: cfg["engine"] = a.engine
     if a.vlm: cfg["vlm"] = a.vlm == "on"
+    if a.note_ocr: cfg["note_ocr"] = a.note_ocr == "on"
     if a.max_vlm_frames: cfg["max_vlm_frames"] = a.max_vlm_frames
     keep = a.keep_intermediate or cfg.get("keep_intermediate", False)
 
@@ -206,17 +247,18 @@ def main():
         lines = [l.strip() for l in Path(a.urls_file).read_text(encoding="utf-8").splitlines()
                  if l.strip() and not l.lstrip().startswith("#")]
         total = len(lines)
-        res = {"ok": 0, "fail": 0, "no_video": 0}
+        res = {"ok": 0, "fail": 0, "no_video": 0, "note": 0}
         print(f"==== 批量开始，共 {total} 条 ====", flush=True)
         for i, u in enumerate(lines, 1):
             print(f"\n==== [{i}/{total}] {u} ====", flush=True)
             st = process_input(u, work_dir, outdir, cfg, keep)
             res[st] += 1
             print(f"[{i}] {st.upper()}", flush=True)
-        print(f"\n===== 批量结束: OK={res['ok']} FAIL={res['fail']} NO_VIDEO={res['no_video']} =====")
+        print(f"\n===== 批量结束: OK={res['ok']} FAIL={res['fail']} "
+              f"NO_VIDEO={res['no_video']} NOTE_OCR={res['note']} =====")
     else:
         st = process_input(a.input, work_dir, outdir, cfg, keep, skip_existing_md=False)
-        if st != "ok":
+        if st in ("fail", "no_video"):
             sys.exit(1 if st == "fail" else 0)
 
 
