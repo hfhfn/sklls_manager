@@ -22,6 +22,10 @@ CONFIG_DEFAULT = {
     "vlm": True,
     "max_vlm_frames": 60,
     "depth": "standard",
+    "refine": {"enabled": True},          # 时间轴转录稿的 LLM 精修（错别字/OCR去重/归纳）
+    "note": {"enabled": True,             # 是否额外产出主题式笔记（<标题>.md）
+             "max_chars": 24000,          # 超过则走 map-reduce（先抽要点再合成）
+             "max_tokens": 8000},
     "output_dir": None,          # 若设置，最终 md 输出到该目录（可选，否则视频旁）
     "keep_intermediate": False,  # 完成后是否保留 .vid_* 中间产物（默认清理）
 }

@@ -161,7 +161,8 @@ def ffmpeg_merge(vpath, apath, out_mp4):
     if len(cmd) < 3:
         return None
     cmd += ["-c", "copy", "-movflags", "+faststart", str(out_mp4)]
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace")
     if r.returncode == 0 and out_mp4.exists():
         return out_mp4
     # 退化：视频轨可直接当成品

@@ -1,6 +1,6 @@
 ---
 name: video2markdown
-description: 把「本地或在线」视频（抖音/B站/YouTube/本地mp4）转成带「画面内容」的结构化 Markdown。语音识别(本地FunASR)+屏内文字OCR+画面语义描述(免费云端视觉模型)三重提取，按时间线互操作成一份含逐字稿/字幕/幻灯片/代码/画面描述的笔记。抖音**图文帖**(/note/，无视频轨)也能自动抓正文大图+RapidOCR 转成图文笔记。当用户给出一段视频文件路径、抖音/B站/YouTube链接/分享口令、或抖音图文帖链接，或要求"把视频转成markdown/生成笔记/转录+画面注释"时使用。
+description: 把「本地或在线」视频（抖音/B站/YouTube/本地mp4）转成带「画面内容」的结构化 Markdown。语音识别(本地FunASR)+屏内文字OCR+画面语义描述(免费云端视觉模型)三重提取，按时间线互操作成一份含逐字稿/字幕/幻灯片/代码/画面描述的**时间轴转录稿**，再按概念重组成一份**主题式笔记**（每次产出两份）。抖音**图文帖**(/note/，无视频轨)也能自动抓正文大图+RapidOCR 转成图文笔记。当用户给出一段视频文件路径、抖音/B站/YouTube链接/分享口令、或抖音图文帖链接，或要求"把视频转成markdown/生成笔记/转录+画面注释"时使用。
 ---
 
 # video2markdown — 视频 → 带画面的 Markdown
@@ -46,6 +46,7 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
 #   本地默认 sensevoice(中文最优)；cloud-sensevoice/cloud-tele 走硅基云端(需余额)
 --vlm on|off                     # 是否启用云端画面语义，默认 on；批量/长任务建议 off 保稳
 --note-ocr on|off                # 抖音图文帖是否自动抓图+RapidOCR，默认 on
+--note on|off                    # 是否额外产出主题式笔记，默认 on（详见下方「两份产出」）
 --max-vlm-frames N               # VLM 最多分析帧数，默认 60
 --outdir DIR                     # 输出 md 目录（覆盖配置 output_dir；默认视频旁）
 --keep-intermediate              # 完成后保留 .vid_* 中间产物（默认自动清理）
@@ -117,6 +118,14 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
   可能不落盘，但旧代码仍把该路径写进 `frames.jsonl`，导致 OCR 读不存在的 `intv_xxxx.xxs.jpg` 崩溃。
   已修复（只在文件真实落盘才加进帧列表 + 写 meta 前再按存在过滤），并给 `ocr.py` 加了跳过缺失关键帧。
   仍遇到"xxx.jpg does not exist"时，删掉该视频对应的 `.vid_*` 目录重跑。
+- **Windows GBK 解码坑（已修复，2026-10）**：`subprocess.run(..., text=True)` 不指定 `encoding`
+  时，Python 用系统默认编码（中文 Windows = GBK）解码子进程输出。ffmpeg/ffprobe 的 stderr 里含
+  **UTF-8 编码的中文路径**，GBK 解不了 → 在读取线程里抛 `UnicodeDecodeError`（该异常**不会传播到主线程**，
+  只打印 traceback），于是 `keyframes.py` 的 `pts_time` 一个都抓不到、`extract_by_scene` 静默返回空，
+  **场景检测退化成等间隔采样**（日志表现为 `模式=scene:none + interval`，正常应是 `scene>0.35 xN`）。
+  已给全部 5 处 `text=True` 补 `encoding="utf-8", errors="replace"`
+  （`keyframes.py` / `ingest.py` / `douyin_download.py` / `video2md.py`×2）。
+  **排查**：日志里出现 `UnicodeDecodeError` + `scene:none` 就是它。
 
 ## ⚠ 无命令行环境降级指南（DSH / 浏览器沙箱 agent 务必先读）
 
@@ -192,14 +201,39 @@ DSH 的 workspace-write 沙箱只放行工作区内的文件，`~/.video2md/conf
   ├─[ocr.py]         RapidOCR(CPU) 逐帧→屏内文字(字幕/PPT/代码) + 时间戳；本地弱帧可升云端OCR(需余额)
   ├─[describe.py]    (vlm=on) 去重加点筛非纯文本帧→送免费云端VLM→画面语义 caption + 故障转移
   └─[assemble.py]    按时间线交错 语音+OCR+VLM → 原始Markdown
-  └─[refine.py]      (可选) 把原始材料送 agnes 等 LLM 整合：错别字修正/OCR去重/要点归纳 → 最终MD
+  └─[refine.py]      (可选) 把原始材料送 agnes 等 LLM 整合：错别字修正/OCR去重/要点归纳 → **时间轴稿** `<标题>_原文.md`
+  └─[note.py]        (可选) 把时间轴稿打散重排：按概念/主题重组、合并跨时间重复 → **主题式笔记** `<标题>.md`
 ```
 
+## 两份产出（视频）
+
+每次转录视频产出**两份** md，用途不同：
+
+| 文件 | 是什么 | 什么时候读 |
+|---|---|---|
+| `<标题>_原文.md` | **时间轴转录稿**：按 mm:ss 时间顺序，忠实还原视频（含画面注释）。refine 精修过错别字/OCR，但结构仍是时间轴 | 想回溯"视频第几分钟讲了什么" |
+| `<标题>.md` | **主题式笔记**：打散时间轴、按概念重组章节，跨时间重复的知识点合并到一处 | 想当知识笔记读、脱离视频查资料 |
+
+- 时间轴稿的局限：概念被打散在多个时间点、同一知识点会重复出现，不适合当笔记读——所以有了第二份。
+- `--note off` 可关掉第二份（此时 `<标题>.md` 就是时间轴稿本身）。
+- 笔记生成失败会**自动退回时间轴稿**写入 `<标题>.md`，不会丢产物。
+- 长稿（> `note.max_chars`，默认 24000 字）自动走 map-reduce：先分块抽取知识要点，再合成主题笔记。
+- **`<标题>` 怎么来**：转录完成后取稿子的一级标题（去掉"· 学习笔记"这类尾缀），只删 Windows 非法字符
+  `\ / : * ? " < > |`——**全角 `｜`、`：` 是合法的，保留**。标题取不到才回退视频名。
+  所以**成品 md 不再需要转录后手动改名**。同名时自动追加 ` (2)`、` (3)` 等序号，两份 md 共用相同前缀，避免覆盖已有产物；源视频文件名不变。
+- 已有时间轴稿想补笔记，可单独跑：
+  `python scripts/note.py --md "<标题>_原文.md"`（默认输出到 `<标题>.md`）。
+
 产出：
-- 视频：`<视频名>.md` + 中间目录 `.vid_intermediates/`（wav/keyframes/frame_meta.json 等，可删）。
-- 图文帖：`<uid>.md` + 原文配图目录 `.note_<uid>/`（图片原样保留，笔记同目录）。
+- 视频：`<标题>.md`（主题笔记）+ `<标题>_原文.md`（时间轴稿）+ 中间目录 `.vid_*`（默认自动清理）。
+- 图文帖：`<标题>.md` + 配图目录 `<标题>_图文/`（同样按标题命名，`.note_<uid>/` 自动改名并改掉 md 里的引用）。
+- **批量幂等**靠 mp4 旁的 `<mp4>.out.txt` 旁车（记上次产出的 md 路径）：输出名取决于转录后才有的标题，
+  事先预知不了，光查"`<视频名>.md` 是否存在"判不了幂等。旧命名的 md 仍会被识别。
+  旁车仅在记录的 md 路径仍存在时有效；归档移动 md 后需同步更新旁车路径，删除下载暂存目录也会删除其中的旁车。
 
 ## Markdown 产物结构（standard 档）
+
+**`<标题>_原文.md`（时间轴转录稿）**——保留时间轴骨架：
 
 ```
 ---
@@ -212,6 +246,19 @@ title, source, duration, 引擎, 模型…
 ## 逐字稿(完整)         ← 全文，带时间戳
 ## 关键要点
 ```
+
+**`<标题>.md`（主题式笔记）**——**没有**时间轴，按概念重组：
+
+```
+# 标题
+## 一句话定位          ← 这讲的是什么 + 核心结论
+## 分主题章节           ← 按概念/主题组织（不是按时间）；含对比表 / 代码块 / JSON
+## 速查表               ← 术语表、场景对照表（材料里有才写）
+## 核心金句
+```
+
+重组铁律（note.py 的提示词）：打散时间轴、跨时间重复的知识点合并到一处、保留全部数字/代码/表格、
+去掉时间戳与"讲解/画面"等转录痕迹、**不编造**。
 
 ## 配置（画面语义后端）
 

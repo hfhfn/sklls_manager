@@ -14,9 +14,10 @@
 输出：整理后的 Markdown 字符串（video2md.py 决定写盘/回退）。
 """
 import json
-import time
+import re
 from pathlib import Path
 
+import llm
 from common import ProgressLog, read_jsonl, fmt_ts
 
 SYS = (
@@ -104,46 +105,39 @@ def chunk_raw(raw, max_chars=24000):
 
 
 def call_refine(raw, cfg, progress, is_first=True):
-    """送 LLM 整理。providers 按 refine.providers 顺序试，含模型内回退。返回整理后文本。"""
-    from openai import OpenAI
-    rcfg = cfg.get("refine", {}) or {}
-    order = rcfg.get("providers", ["agnes", "zhipu"])
-    providers = cfg.get("providers", {}) or {}
+    """送 LLM 整理。provider 顺序与故障转移见 llm.chat。返回整理后文本。"""
     if is_first:
         user = USER_TMPL.format(raw=raw)
     else:
         user = ("继续整理同一视频的后续分块。**不要重写标题/摘要/引言**，"
-                "直接从你负责的时间段开始输出正文（时间轴·画面与讲解），保持 Markdown 结构。\n\n"
+                "也**不要再输出任何 `##` 级标题**——章节标题只由第一块负责，"
+                "重复输出会拼出重复的“时间轴·画面与讲解”章节。"
+                "直接从 `### [mm:ss]` 小节开始输出正文。\n\n"
                 "以下为本块的【原始材料】：\n" + raw + "\n\n"
-                "仍遵守：修正错别字、OCR去重合并、保留 mm:ss、不编造、只输出正文。")
-    last = None
-    for name in order:
-        p = providers.get(name) or {}
-        if not p.get("enabled", True) or not p.get("api_key"):
+                "仍遵守：修正错别字、OCR去重合并、保留 mm:ss、不编造、只输出正文。"
+                "不要写“整理完毕”“后续分块请继续提供”这类过场语。")
+    return llm.chat(cfg, SYS, user, progress=progress, tag="refine", section="refine")
+
+
+# 分块拼接产物：模型在块尾爱加的过场语，以及续块误输出的 ## 级标题
+_META_LINE = re.compile(
+    r"^\s*(?:[*_>#-]+\s*)*(?:笔记|本文|本稿|全文)?\s*"
+    r"(?:整理完毕|后续分块|（续）|\(续\)|（待续）|以上(?:内容|为|是)|以下(?:为|是)整理)")
+_HEAD12 = re.compile(r"^#{1,2}\s")
+
+
+def _clean_part(text, is_first):
+    """清掉分块拼接的痕迹：过场语行 + 续块重复的 ## 级标题。"""
+    out = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        # 过场语：限短行（长行多半是正文，避免误杀"以上内容说明了…"这类正文句）
+        if s and len(s) <= 80 and _META_LINE.match(s):
             continue
-        models = [p.get("model", "")] + [m for m in p.get("models", [])
-                                         if m != p.get("model")]
-        cli = OpenAI(base_url=p["base_url"], api_key=p["api_key"],
-                     timeout=300, max_retries=0)
-        for model in models:
-            try:
-                r = cli.chat.completions.create(
-                    model=model,
-                    messages=[
-                        {"role": "system", "content": SYS},
-                        {"role": "user", "content": user},
-                    ],
-                    max_tokens=6000, temperature=0.3,
-                )
-                out = (r.choices[0].message.content or "").strip()
-                if out:
-                    progress.log(f"[refine] 完成（{name}/{model}）")
-                    return out
-                last = f"{name}/{model}: empty"
-            except Exception as e:
-                last = f"{name}/{model}: {str(e)[:90]}"
-        time.sleep(1)
-    raise RuntimeError(f"refine 所有 provider 失败: {last}")
+        if not is_first and _HEAD12.match(s):
+            continue
+        out.append(ln)
+    return "\n".join(out).strip()
 
 
 def refine(inter_dir, cfg, progress):
@@ -158,8 +152,9 @@ def refine(inter_dir, cfg, progress):
     parts = []
     for i, b in enumerate(blocks, 1):
         progress.log(f"[refine] 块 {i}/{len(blocks)} ...")
-        parts.append(call_refine(b, cfg, progress, is_first=(i == 1)))
-    return "\n\n---\n\n".join(parts)
+        parts.append(_clean_part(call_refine(b, cfg, progress, is_first=(i == 1)),
+                                 is_first=(i == 1)))
+    return "\n\n---\n\n".join(p for p in parts if p)
 
 
 if __name__ == "__main__":

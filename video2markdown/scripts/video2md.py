@@ -41,6 +41,7 @@ from ocr import ocr_frames
 from describe import describe_frames
 from assemble import assemble
 from refine import refine as refine_md
+from note import build_note
 
 
 def _cleanup_intermediate(inter, keep, plog):
@@ -71,7 +72,7 @@ def _douyin_fallback(input_, work_dir, plog):
         env.pop(k, None)
     # 用独立子进程跑下载器：避免把 Playwright 塞进 video2md 已加载 torch/funasr 的环境
     r = subprocess.run([py, dl, input_, str(work_dir)], env=env,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode == 2:
         # 图文帖：从下载器输出 `NO_VIDEO <uid>` 拿 uid，交由 note_ocr 按图文转
         uid = None
@@ -121,13 +122,15 @@ def ingest_with_fallback(input_, work_dir, plog):
 
 
 def _note_ocr_process(note_uid, input_, outdir, work_dir, cfg, keep):
-    """图文帖：用 note_ocr.py 抓图 + OCR → md。返回状态字符串 note/fail。"""
+    """图文帖：用 note_ocr.py 抓图 + OCR → md，再按标题改名。返回 note/fail。"""
     od = outdir or (Path(cfg.get("output_dir")) if cfg.get("output_dir") else Path(work_dir))
     od = Path(od)
     od.mkdir(parents=True, exist_ok=True)
     out_md = od / f"{note_uid}.md"
-    if Path(out_md).exists():
-        print(f"  [note] md 已存在，跳过 OCR: {out_md}", flush=True)
+    sidecar = od / f".note_{note_uid}.out.txt"
+    done = _read_sidecar(sidecar)
+    if done or Path(out_md).exists():
+        print(f"  [note] 已 OCR 过，跳过: {done or out_md}", flush=True)
         return "note"
     note = str(Path(__file__).resolve().parent / "note_ocr.py")
     env = dict(os.environ)
@@ -135,13 +138,96 @@ def _note_ocr_process(note_uid, input_, outdir, work_dir, cfg, keep):
         env.pop(k, None)
     print(f"  [note] 图文帖 → 抓图 + RapidOCR: {out_md}", flush=True)
     r = subprocess.run([sys.executable, note, input_, str(od)], env=env,
-                       capture_output=True, text=True)
-    if r.returncode == 0:
-        print(f"\nMarkdown: {out_md}", flush=True)
-        return "note"
-    tail = (r.stdout or r.stderr or "").strip()[-300:]
-    print(f"  [note] 图文 OCR 失败(rc={r.returncode}): {tail}", flush=True)
-    return "fail"
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if r.returncode != 0:
+        tail = (r.stdout or r.stderr or "").strip()[-300:]
+        print(f"  [note] 图文 OCR 失败(rc={r.returncode}): {tail}", flush=True)
+        return "fail"
+
+    # 按标题改名：<uid>.md → <标题>.md，配图目录 .note_<uid>/ → <标题>_图文/
+    try:
+        title = _pick_title(out_md.read_text(encoding="utf-8"))
+        base = _safe_name(title or note_uid)
+    except OSError:
+        base = note_uid
+    if base != note_uid:
+        base = _available_base(od, base)
+        old_dir, new_dir = od / f".note_{note_uid}", od / f"{base}_图文"
+        if old_dir.is_dir() and not new_dir.exists():
+            old_dir.rename(new_dir)
+            try:  # md 里"配图在本目录 .note_<uid>/"那句跟着改，别指向不存在的目录
+                out_md.write_text(
+                    out_md.read_text(encoding="utf-8").replace(
+                        f".note_{note_uid}/", f"{base}_图文/"), encoding="utf-8")
+            except OSError:
+                pass
+        out_md = out_md.rename(od / f"{base}.md")
+
+    _write_sidecar(sidecar, out_md)
+    print(f"\nMarkdown: {out_md}", flush=True)
+    return "note"
+
+
+# --- 输出命名：用稿子里的一级标题当文件名（Windows 合法化）---
+# 旧做法是拿视频名/uid 命名，全角 ｜ ： 会被 ingest 的白名单清洗误删，用户还得手动改名。
+# 现在改成转录完成后按标题定名 —— 标题要转录后才知道，所以是"先写临时名，再改名"。
+
+_H1 = re.compile(r"^#\s+(.+?)\s*$", re.M)
+# 只删 Windows 真正非法的字符；全角 ｜ ： 等是合法的，必须保留
+_WIN_BAD = re.compile(r'[\\/:*?"<>|\x00-\x1f]')
+# 标题尾缀："… · 学习笔记" → "…"
+_TITLE_TAIL = re.compile(r"\s*[·・|｜\-—]\s*(学习笔记|知识笔记|视频笔记|笔记)\s*$")
+
+
+def _safe_name(name, maxlen=120):
+    """标题 → Windows 合法文件名（去非法字符与结尾点/空格，限长）。"""
+    s = _WIN_BAD.sub("", (name or "").strip())
+    s = re.sub(r"\s+", " ", s).strip().rstrip(" .")
+    if len(s) > maxlen:
+        s = s[:maxlen].rstrip(" .")
+    # Windows 保留设备名即使带扩展名也不能用，例如 CON.md。
+    if re.fullmatch(r"CON|PRN|AUX|NUL|COM[1-9¹²³]|LPT[1-9¹²³]",
+                    s.split(".", 1)[0].rstrip(" "), re.I):
+        s = "_" + s
+    return s or "video"
+
+
+def _pick_title(md_text):
+    """取稿子的一级标题（去掉"· 学习笔记"这类尾缀）。取不到返回 None。"""
+    m = _H1.search(md_text or "")
+    if not m:
+        return None
+    return _TITLE_TAIL.sub("", m.group(1).strip()).strip() or None
+
+
+def _available_base(outdir, base):
+    """为一组产物选未占用的 basename，不覆盖同名笔记、原文或配图。"""
+    candidate = base
+    number = 2
+    while any((Path(outdir) / f"{candidate}{suffix}").exists()
+              for suffix in (".md", "_原文.md", "_图文")):
+        candidate = f"{base} ({number})"
+        number += 1
+    return candidate
+
+
+def _read_sidecar(path):
+    """读旁车记录的上次输出路径；该 md 仍在 → 返回它，否则 None。"""
+    try:
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and Path(line).is_file():
+                return line
+    except OSError:
+        pass
+    return None
+
+
+def _write_sidecar(path, md_path):
+    try:
+        Path(path).write_text(str(md_path), encoding="utf-8")
+    except OSError:
+        pass
 
 
 def process_input(input_, work_dir, outdir, cfg, keep, skip_existing_md=True):
@@ -172,13 +258,18 @@ def process_input(input_, work_dir, outdir, cfg, keep, skip_existing_md=True):
     # --- 输出目录解析：命令行 --outdir > 配置 output_dir；两者都不设 → 视频同目录 ---
     od = outdir or (Path(cfg.get("output_dir")) if cfg.get("output_dir") else Path(mp4).parent)
     od.mkdir(parents=True, exist_ok=True)
-    out = str(od / f"{Path(mp4).stem}.md")
+    legacy_out = od / f"{_safe_name(Path(mp4).stem)}.md"
+    out = str(Path(inter) / "assembled.md")
+    sidecar = Path(mp4).with_suffix(Path(mp4).suffix + ".out.txt")
 
-    # 批量幂等：同理 mp4 已存在、md 已生成 → 跳过转录
-    if skip_existing_md and Path(out).exists():
-        plog.log(f"[batch] md 已存在，跳过转录: {out}")
-        _cleanup_intermediate(inter, keep, plog)
-        return "ok"
+    # 批量幂等：临时名 md 已在（旧命名），或旁车记的成品仍在（新命名）→ 跳过转录。
+    # 不能只查临时名：输出名现在取决于转录后才有的标题，事先无从预知。
+    if skip_existing_md:
+        done = _read_sidecar(sidecar)
+        if done or legacy_out.exists():
+            plog.log(f"[batch] 已转录过，跳过: {done or legacy_out}")
+            _cleanup_intermediate(inter, keep, plog)
+            return "ok"
 
     segs = transcribe(mp4, str(inter), cfg, plog)
     frames = keyframes(mp4, str(inter), cfg, plog)
@@ -189,16 +280,45 @@ def process_input(input_, work_dir, outdir, cfg, keep, skip_existing_md=True):
         except Exception as e:
             plog.log(f"[vlm][!] 画面语义阶段失败（降级：仅保留 OCR）：{e}")
     out = assemble(str(inter), cfg, plog, out)
-    # --- LLM 精修：把 OCR/ASR 原始材料送 agnes 等整合优化 → 最终 MD（失败回退原始组装） ---
+    # --- 第一份：原文（时间轴转录稿）。LLM 精修失败则回退原始组装 ---
+    timeline = None
     if cfg.get("refine", {}).get("enabled", True):
         try:
-            refined = refine_md(str(inter), cfg, plog)
-            Path(out).write_text(refined, encoding="utf-8")
-            plog.log(f"[total] 精修完成 → {out}")
+            timeline = refine_md(str(inter), cfg, plog)
         except Exception as e:
-            plog.log(f"[refine][!] 整理失败，保留原始组装结果：{e}")
-    plog.log(f"[total] 完成 → {out}")
-    print(f"\nMarkdown: {out}", flush=True)
+            plog.log(f"[refine][!] 整理失败，回退原始组装结果：{e}")
+    if timeline is None:
+        timeline = Path(out).read_text(encoding="utf-8")
+    # --- 用标题定最终文件名（标题转录后才有，故在此改名）---
+    base = _safe_name(_pick_title(timeline) or meta.get("title") or Path(mp4).stem)
+    base = _available_base(od, base)
+    final = od / f"{base}.md"
+    raw_final = od / f"{base}_原文.md"
+
+    raw_final.write_text(timeline, encoding="utf-8")
+    plog.log(f"[total] 原文（时间轴）→ {raw_final}")
+
+    # --- 第二份：笔记（主题式重组）。默认开；--note off 关；失败回退时间轴稿 ---
+    if cfg.get("note", {}).get("enabled", True):
+        try:
+            final.write_text(build_note(timeline, cfg, plog), encoding="utf-8")
+            plog.log(f"[total] 笔记（主题式）→ {final}")
+        except Exception as e:
+            final.write_text(timeline, encoding="utf-8")
+            plog.log(f"[note][!] 主题笔记生成失败，退回时间轴稿：{e}")
+    else:
+        final.write_text(timeline, encoding="utf-8")
+
+    # 组装阶段的临时文件若与最终名不同，删掉，别留半成品
+    if Path(out).resolve() != final.resolve():
+        try:
+            Path(out).unlink()
+        except OSError:
+            pass
+
+    _write_sidecar(sidecar, final)
+    plog.log(f"[total] 完成 → {final}")
+    print(f"\n笔记: {final}\n原文: {raw_final}", flush=True)
     _cleanup_intermediate(inter, keep, plog)
     return "ok"
 
@@ -217,6 +337,10 @@ def main():
                     help="是否启用云端画面语义（默认 on）")
     ap.add_argument("--note-ocr", choices=["on", "off"], default=None,
                     help="抖音图文帖是否自动走抓图+RapidOCR（默认 on；off 则按原样记为 NO_VIDEO）")
+    ap.add_argument("--note", choices=["on", "off"], default=None,
+                    help="是否额外生成主题式笔记（默认 on）。每份视频产两份："
+                         "<标题>.md=主题式笔记，<标题>_原文.md=时间轴转录稿；"
+                         "off 则只产时间轴原文（<标题>.md 即原文）")
     ap.add_argument("--max-vlm-frames", type=int, default=None)
     ap.add_argument("--out", default=None, help="输出 md 路径（默认在输出目录，名为视频标题.md；批量模式无效）")
     ap.add_argument("--outdir", default=None, help="输出 md 目录（覆盖配置 output_dir；默认视频旁）")
@@ -233,6 +357,7 @@ def main():
     if a.engine: cfg["engine"] = a.engine
     if a.vlm: cfg["vlm"] = a.vlm == "on"
     if a.note_ocr: cfg["note_ocr"] = a.note_ocr == "on"
+    if a.note: cfg["note"] = {**(cfg.get("note") or {}), "enabled": a.note == "on"}
     if a.max_vlm_frames: cfg["max_vlm_frames"] = a.max_vlm_frames
     keep = a.keep_intermediate or cfg.get("keep_intermediate", False)
 

@@ -52,7 +52,10 @@ def extract_by_scene(video, run_dir, threshold, max_frames):
     cmd = [ffmpeg_bin(), "-i", video,
            "-vf", f"select='gt(scene,{threshold})',showinfo",
            "-vsync", "vfr", "-frames:v", str(max_frames * 2 + 8), tmp]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=900)
+    # 显式 utf-8：Windows 默认 GBK 解码 ffmpeg stderr（含 UTF-8 中文路径）会在读取线程里
+    # 抛 UnicodeDecodeError，静默丢掉全部 pts_time → 场景检测退化成等间隔采样。
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=900)
     times = []
     for m in re.finditer(r"pts_time:([0-9.]+)", r.stderr or ""):
         try:

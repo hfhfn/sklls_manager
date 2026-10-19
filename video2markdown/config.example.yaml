@@ -31,6 +31,13 @@ refine:
   max_chars: 24000               # 材料超过则按时段分块多次调用再拼接
   prefer_section_chars: 18000    # (保留字段) 单块理想大小
 
+# ---- 主题式笔记：把时间轴转录稿打散、按概念重组成笔记（产出第二份 <标题>.md）----
+note:
+  enabled: true
+  providers: ["agnes", "zhipu"]   # 与 refine 独立；不填则同 refine 顺序
+  max_chars: 24000               # 时间轴稿超过则走 map-reduce（先抽要点再合成）
+  max_tokens: 8000               # 单次生成的输出上限
+
 failover:
   randomize: true          # 起始随机，分摊各家瞬时限流
   retries: 3               # 每帧最多尝试次数(含同 provider 模型回退)
