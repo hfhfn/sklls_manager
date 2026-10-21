@@ -4,7 +4,9 @@
   "path": "dashi-ppt",
   "path_key": "dashi-ppt",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "ppt"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "chuspeeism/dashiai-ppt-skill/dashi-ppt",
