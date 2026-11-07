@@ -4,7 +4,10 @@
   "path": "smart-proxy",
   "path_key": "smart-proxy",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes",
+    "proxy"
+  ],
   "source": {
     "type": "import",
     "ref": null,

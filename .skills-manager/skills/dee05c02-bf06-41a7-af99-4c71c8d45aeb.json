@@ -4,7 +4,9 @@
   "path": "memory-curation",
   "path_key": "memory-curation",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes"
+  ],
   "source": {
     "type": "local",
     "ref": null,

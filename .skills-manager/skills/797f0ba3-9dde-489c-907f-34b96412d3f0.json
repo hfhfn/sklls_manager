@@ -4,7 +4,10 @@
   "path": "zhipu-glm-vision-api",
   "path_key": "zhipu-glm-vision-api",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes",
+    "LLM"
+  ],
   "source": {
     "type": "import",
     "ref": null,

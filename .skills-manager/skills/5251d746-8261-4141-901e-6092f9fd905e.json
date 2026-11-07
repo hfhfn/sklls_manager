@@ -4,7 +4,9 @@
   "path": "skills-manager",
   "path_key": "skills-manager",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes"
+  ],
   "source": {
     "type": "import",
     "ref": null,

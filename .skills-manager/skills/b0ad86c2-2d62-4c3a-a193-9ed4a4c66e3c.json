@@ -4,7 +4,10 @@
   "path": "youtube-content",
   "path_key": "youtube-content",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes",
+    "Media"
+  ],
   "source": {
     "type": "import",
     "ref": null,

@@ -4,7 +4,10 @@
   "path": "windows-dll-errors",
   "path_key": "windows-dll-errors",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes",
+    "Windows"
+  ],
   "source": {
     "type": "import",
     "ref": null,
