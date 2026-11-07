@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a5549834-8675-42c1-8c9c-0732ed860b15",
+  "path": "smart-proxy",
+  "path_key": "smart-proxy",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
