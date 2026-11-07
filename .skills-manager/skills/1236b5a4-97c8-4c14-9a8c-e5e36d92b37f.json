@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "1236b5a4-97c8-4c14-9a8c-e5e36d92b37f",
+  "path": "windows-dll-errors",
+  "path_key": "windows-dll-errors",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

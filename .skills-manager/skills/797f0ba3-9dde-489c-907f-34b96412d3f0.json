@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "797f0ba3-9dde-489c-907f-34b96412d3f0",
+  "path": "zhipu-glm-vision-api",
+  "path_key": "zhipu-glm-vision-api",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "import",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
