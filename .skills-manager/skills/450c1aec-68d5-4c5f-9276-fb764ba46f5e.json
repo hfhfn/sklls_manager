@@ -4,7 +4,9 @@
   "path": "web-search",
   "path_key": "web-search",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "Hermes"
+  ],
   "source": {
     "type": "skillssh",
     "ref": "brave/brave-search-skills/web-search",
