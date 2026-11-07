@@ -10,7 +10,7 @@
   "source": {
     "type": "skillssh",
     "ref": "garrytan/gstack/gstack",
-    "subpath": null,
+    "subpath": "capy\\skill\\gstack",
     "branch": null
   }
 }

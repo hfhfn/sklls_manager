@@ -25,6 +25,8 @@ language: null            # zh|en|ja|ko|auto
 
 preferred_image_backend: auto  # auto|ask|<backend-id>
 
+generation_batch_size: 4       # 1-8, used when backend/runtime supports batch or parallel page generation
+
 character_presets:
   - name: my-characters
     roles:
@@ -48,7 +50,8 @@ character_presets:
 | `preferred_layout` | string | null | Layout preference or null |
 | `preferred_aspect` | string | null | Aspect ratio (3:4, 4:3, 16:9) |
 | `language` | string | null | Output language (null = auto-detect) |
-| `preferred_image_backend` | string | `auto` | Image backend selection. `auto` = prefer runtime-native tool, fall back to the only installed backend, ask if multiple non-native are present. `ask` = always confirm on every run. `<backend-id>` (e.g., `codex-imagegen`, `baoyu-imagine`, `image_generate`) = pin this backend when available; fall back to `auto` when it isn't. Absent = `auto`. Resolution logic is documented in `SKILL.md`'s `## Image Generation Tools` section. |
+| `preferred_image_backend` | string | `auto` | Image backend selection. `auto` = prefer runtime-native tool, fall back to the only installed backend, ask if multiple non-native are present. `ask` = always confirm on every run. `<backend-id>` (e.g., `codex-imagegen`, `baoyu-image-gen`, `image_generate`) = pin this backend when available; fall back to `auto` when it isn't. Absent = `auto`. Resolution logic is documented in `SKILL.md`'s `## Image Generation Tools` section. |
+| `generation_batch_size` | int | 4 | Number of page images to dispatch per batch when the backend has native batch support or the runtime can issue parallel generation calls. Clamp invalid values to 1-8. Current user request overrides this value. |
 | `character_presets` | array | [] | Preset character roles for styles like ohmsha |
 
 ## Art Style Options
@@ -93,7 +96,7 @@ character_presets:
 | `roles.challenge` | No | Character representing obstacles/antagonist |
 | `roles.support` | No | Character providing support/comic relief |
 
-## Example: Minimal Preferences
+## Example
 
 ```yaml
 ---
@@ -106,46 +109,9 @@ preferred_tone: neutral
 ---
 ```
 
-## Example: Full Preferences
-
-```yaml
----
-version: 2
-watermark:
-  enabled: true
-  content: "@comicstudio"
-  position: bottom-right
-
-preferred_art: manga
-preferred_tone: neutral
-
-preferred_layout: webtoon
-
-preferred_aspect: "3:4"
-
-language: zh
-
-preferred_image_backend: codex-imagegen
-
-character_presets:
-  - name: tech-tutorial
-    roles:
-      learner: "小明"
-      mentor: "教授"
-      challenge: "难题怪"
-      support: "小助手"
-  - name: doraemon
-    roles:
-      learner: "大雄"
-      mentor: "哆啦A梦"
-      challenge: "胖虎"
-      support: "静香"
----
-```
-
 ## Migration from v1
 
-If you have a v1 preferences file with `preferred_style`, migrate as follows:
+v1 files with `preferred_style` migrate as:
 
 | Old `preferred_style.name` | New `preferred_art` | New `preferred_tone` |
 |---------------------------|---------------------|---------------------|

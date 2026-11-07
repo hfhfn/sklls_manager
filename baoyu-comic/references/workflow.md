@@ -1,36 +1,6 @@
 # Complete Workflow
 
-Full workflow for generating knowledge comics.
-
-## Progress Checklist
-
-Copy and track progress:
-
-```
-Comic Progress:
-- [ ] Step 1: Setup & Analyze
-  - [ ] 1.1 Load preferences
-  - [ ] 1.2 Analyze content
-  - [ ] 1.3 Check existing ⚠️ REQUIRED
-- [ ] Step 2: Confirmation 1 - Style & options ⚠️ REQUIRED
-- [ ] Step 3: Generate storyboard + characters
-- [ ] Step 4: Review outline (conditional)
-- [ ] Step 5: Generate prompts
-- [ ] Step 6: Review prompts (conditional)
-- [ ] Step 7: Generate images
-  - [ ] 7.1 Character sheet (if needed)
-  - [ ] 7.2 Generate pages
-- [ ] Step 8: Merge to PDF
-- [ ] Step 9: Completion report
-```
-
-## Flow Diagram
-
-```
-Input → Preferences → Analyze → [Check Existing?] → [Confirm 1: Style + Reviews] → Storyboard → [Review Outline?] → Prompts → [Review Prompts?] → Images → PDF → Complete
-```
-
----
+Progress checklist: see SKILL.md `## Workflow`.
 
 ## Step 1: Setup & Analyze
 
@@ -53,11 +23,6 @@ if (Test-Path "$xdg/baoyu-skills/baoyu-comic/EXTEND.md") { "xdg" }
 if (Test-Path "$HOME/.baoyu-skills/baoyu-comic/EXTEND.md") { "user" }
 ```
 
-| Path | Location |
-|------|----------|
-| `.baoyu-skills/baoyu-comic/EXTEND.md` | Project directory |
-| `$HOME/.baoyu-skills/baoyu-comic/EXTEND.md` | User home |
-
 **When EXTEND.md Found** → Read, parse, **output summary to user**:
 
 ```
@@ -70,7 +35,7 @@ if (Test-Path "$HOME/.baoyu-skills/baoyu-comic/EXTEND.md") { "user" }
 └─ Character presets: [count] defined
 ```
 
-**MUST output this summary** so user knows their current configuration. Do not skip or silently load.
+**MUST output this summary** — do not load silently.
 
 **When EXTEND.md Not Found** → First-time setup:
 
@@ -79,17 +44,12 @@ if (Test-Path "$HOME/.baoyu-skills/baoyu-comic/EXTEND.md") { "user" }
 3. Create EXTEND.md at user-chosen location
 4. Confirm: "✓ Preferences saved to [path]"
 
-**EXTEND.md Supports**: Watermark | Preferred art/tone/layout | Custom style definitions | Character presets | Language preference
-
 Schema: `config/preferences-schema.md`
 
-**Important**: Once EXTEND.md exists, watermark, language, and style defaults are NOT asked again in Confirmation 1 or 2. These are session-persistent settings.
+Once EXTEND.md exists, watermark, language, and style defaults are NOT asked again in Confirmation 1 or 2.
 
 ### 1.2 Analyze Content → `analysis.md`
 
-Read source content, save it if needed, and perform deep analysis.
-
-**Actions**:
 1. **Save source content** (if not already a file):
    - If user provides a file path: use as-is
    - If user pastes content: save to `source.md` in target directory
@@ -116,9 +76,7 @@ Read source content, save it if needed, and perform deep analysis.
 
 ### 1.3 Check Existing Content ⚠️ REQUIRED
 
-**MUST execute before proceeding to Step 2.**
-
-Use Bash to check if output directory exists:
+**MUST execute before Step 2.** Check whether the output directory exists:
 
 ```bash
 test -d "comic/{topic-slug}" && echo "exists"
@@ -140,7 +98,7 @@ options:
     description: "Cancel, keep existing content unchanged"
 ```
 
-Save result and handle accordingly:
+Handle the answer:
 - **Regenerate storyboard**: Skip to Step 3, preserve `prompts/` and images
 - **Regenerate images**: Skip to Step 7, use existing prompts
 - **Backup and regenerate**: Move directory, start fresh from Step 2
@@ -150,9 +108,7 @@ Save result and handle accordingly:
 
 ## Step 2: Confirmation 1 - Style & Options ⚠️
 
-**Purpose**: Select visual style + decide whether to review outline before generation. **Do NOT skip.**
-
-**Note**: Watermark and language already configured in EXTEND.md (Step 1).
+Select visual style + decide on review gates. **Do NOT skip.** Watermark and language come from EXTEND.md (Step 1).
 
 **Display summary**:
 - Content type + topic identified
@@ -252,8 +208,6 @@ options:
 
 ## Step 3: Generate Storyboard + Characters
 
-Create storyboard and character definitions using the confirmed style from Step 2.
-
 **Loading Style References**:
 - Art style: `art-styles/{art}.md`
 - Tone: `tones/{tone}.md`
@@ -284,19 +238,15 @@ Create storyboard and character definitions using the confirmed style from Step 
 | Challenge | 胖虎 (Gian) | Stocky boy, rough features, small eyes, orange shirt |
 | Support | 静香 (Shizuka) | Cute girl, black short hair, pink dress, gentle expression |
 
-These are the canonical ohmsha-style characters. Do NOT create custom characters for ohmsha unless explicitly requested.
+Do NOT create custom characters for ohmsha unless explicitly requested.
 
-**After generation**:
-- If `skip_outline_review` is true → Skip Step 4, go directly to Step 5
-- If `skip_outline_review` is false → Continue to Step 4
+**After generation**: `skip_outline_review` true → Step 5; false → Step 4.
 
 ---
 
 ## Step 4: Review Outline (Conditional)
 
-**Skip this step** if user selected "No, generate directly" in Step 2.
-
-**Purpose**: User reviews and confirms storyboard + characters before generation.
+Only when `skip_outline_review` is false.
 
 **Display**:
 - Page count and structure
@@ -327,8 +277,6 @@ options:
 ---
 
 ## Step 5: Generate Prompts
-
-Create image generation prompts for all pages.
 
 **Style Reference Loading**:
 - Read `art-styles/{art}.md` for rendering guidelines
@@ -367,17 +315,13 @@ Ensure watermark does not overlap speech bubbles or key action.
 ```
 Reference: `config/watermark-guide.md`
 
-**After generation**:
-- If `skip_prompt_review` is true → Skip Step 6, go directly to Step 7
-- If `skip_prompt_review` is false → Continue to Step 6
+**After generation**: `skip_prompt_review` true → Step 7; false → Step 6.
 
 ---
 
 ## Step 6: Review Prompts (Conditional)
 
-**Skip this step** if user selected "No, skip prompt review" in Step 2.
-
-**Purpose**: User reviews and confirms prompts before image generation.
+Only when `skip_prompt_review` is false.
 
 **Display prompt summary table**:
 
@@ -410,11 +354,7 @@ options:
 
 ## Step 7: Generate Images
 
-With confirmed prompts from Step 5/6:
-
 ### 7.1 Generate Character Reference Sheet (conditional)
-
-Character sheet is recommended for multi-page comics with recurring characters, but **NOT required** for all presets.
 
 **When to generate**:
 
@@ -434,13 +374,7 @@ Character sheet is recommended for multi-page comics with recurring characters, 
 
 ### 7.2 Generate Comic Pages
 
-**Before generating any page**:
-1. Read the image generation skill's SKILL.md
-2. Check if it supports reference image input (`--ref`, `--reference`, etc.)
-3. Determine if character sheet exists
-4. Choose the appropriate strategy below
-
-**Page Generation Strategy**:
+Read the image generation skill's SKILL.md, check whether it accepts reference images (`--ref`, `--reference`, etc.) and whether the character sheet exists, then pick a strategy:
 
 | Character Sheet | Skill Capability | Strategy |
 |-----------------|------------------|----------|
@@ -448,7 +382,7 @@ Character sheet is recommended for multi-page comics with recurring characters, 
 | Exists | No `--ref` support | **B**: Embed character descriptions in every prompt |
 | Skipped | — | **C**: Prompt file contains all descriptions inline |
 
-**Strategy A: Using `--ref` parameter** (e.g., baoyu-imagine)
+**Strategy A: Using `--ref` parameter** (e.g., baoyu-image-gen)
 
 - Read the chosen image generation skill's `SKILL.md`
 - Invoke that installed skill via its documented interface, not by calling its scripts directly
@@ -481,31 +415,27 @@ When skill does NOT support reference images, create combined prompt files:
 [Original page prompt here]
 ```
 
-**Strategy C: Prompt-only (no character sheet)**
+**Strategy C: Prompt-only** (character sheet skipped or `--ref` failed): prompt file contains all character descriptions inline; no `--ref`.
 
-When character sheet was skipped or `--ref` failed:
-- Prompt file already contains all character descriptions inline
-- No `--ref` parameter needed
-- Rely on detailed text descriptions for character consistency
+**Page batch generation (cover + pages)**:
+1. Build a page task list from selected saved prompts:
+   - `prompt_file`: `prompts/NN-{cover|page}-[slug].md`
+   - `output_file`: `NN-{cover|page}-[slug].png`
+   - `aspect_ratio`: from storyboard (default `3:4`; preset may override)
+   - `refs`: character sheet and verified direct user refs when Strategy A is active
+2. **Backup rule**: Before dispatching a task, if its image file exists, rename it to `NN-{cover|page}-[slug]-backup-YYYYMMDD-HHMMSS.png`.
+3. Dispatch tasks in batches:
+   - Native batch backend: send all eligible page tasks, or chunks of `generation_batch_size` if the backend has a practical limit.
+   - Runtime parallel calls: issue up to `generation_batch_size` image calls concurrently, then continue with the next chunk.
+   - Sequential fallback: process one page at a time.
+4. After each completed task, report: "Generated X/N: [page title]".
+5. On failure, retry the failed task once from the same saved prompt file. Keep successful outputs and continue.
 
-**For each page (cover + pages)**:
-1. Read prompt from `prompts/NN-{cover|page}-[slug].md`
-2. **Backup rule**: If image file exists, rename to `NN-{cover|page}-[slug]-backup-YYYYMMDD-HHMMSS.png`
-3. Generate image using Strategy A, B, or C
-4. Save to `NN-{cover|page}-[slug].png`
-5. Report progress after each generation: "Generated X/N: [page title]"
-
-**Session Management**:
-If image generation skill supports `--sessionId`:
-1. Generate unique session ID: `comic-{topic-slug}-{timestamp}`
-2. Use same session ID for all pages
-3. Ensures visual consistency across generated images
+**Session Management**: if the image skill supports `--sessionId`, use one session ID `comic-{topic-slug}-{timestamp}` for all pages (visual consistency).
 
 ---
 
 ## Step 8: Merge to PDF
-
-After all images generated:
 
 ```bash
 ${BUN_X} {baseDir}/scripts/merge-to-pdf.ts <comic-dir>
@@ -528,16 +458,4 @@ Location: [path]
 ✓ {topic-slug}.pdf
 ```
 
----
-
-## Page Modification
-
-| Action | Steps |
-|--------|-------|
-| **Edit** | Update prompt → Regenerate image → Regenerate PDF |
-| **Add** | Create prompt at position → Generate image → Renumber subsequent (NN+1) → Update storyboard → Regenerate PDF |
-| **Delete** | Remove files → Renumber subsequent (NN-1) → Update storyboard → Regenerate PDF |
-
-**File naming**: `NN-{cover|page}-[slug].png` (e.g., `03-page-enigma-machine.png`)
-- Slugs: kebab-case, unique, derived from content
-- Renumbering: Update NN prefix only, slugs unchanged
+Page add/edit/delete and file naming: see SKILL.md `## Page Modification`.

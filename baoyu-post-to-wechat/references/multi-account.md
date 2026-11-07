@@ -1,12 +1,12 @@
 # Multi-Account Support
 
-Details for managing multiple WeChat Official Accounts through one EXTEND.md. SKILL.md only covers single-account flow and the selection prompt — read this file when the user has an `accounts:` block, asks to publish to a specific account, or needs per-account credentials.
+Read when EXTEND.md has an `accounts:` block, the user names a specific account, or per-account credentials are needed.
 
 ## Compatibility
 
 | Condition | Mode | Behavior |
 |-----------|------|----------|
-| No `accounts` block | Single-account | Original behavior, no changes |
+| No `accounts` block | Single-account | Original behavior |
 | `accounts` with 1 entry | Single-account | Auto-select, no prompt |
 | `accounts` with 2+ entries | Multi-account | Prompt to select before publishing |
 | `accounts` with `default: true` | Multi-account | Pre-select default; user can switch |
@@ -37,13 +37,13 @@ accounts:
 
 ## Per-Account vs Global Keys
 
-**Per-account** (also accepted globally as fallback): `default_publish_method`, `default_author`, `need_open_comment`, `only_fans_can_comment`, `app_id`, `app_secret`, `chrome_profile_path`.
+**Per-account** (also accepted globally as fallback): `default_publish_method`, `default_author`, `need_open_comment`, `only_fans_can_comment`, `app_id`, `app_secret`, `chrome_profile_path`, `remote_publish_host`, `remote_publish_user`, `remote_publish_port`, `remote_publish_identity_file`, `remote_publish_known_hosts_file`, `remote_publish_strict_host_key_checking`, `remote_publish_connect_timeout`, `remote_publish_proxy_jump`.
 
 **Global-only** (always shared): `default_theme`, `default_color`.
 
 ## Account Selection (Step 0.5)
 
-Insert between Step 0 (Load EXTEND.md) and Step 1 (Determine input type):
+Between Step 0 and Step 1:
 
 ```
 if no accounts block:
@@ -82,7 +82,7 @@ WECHAT_AI_TOOLS_APP_SECRET=your_ai_tools_wechat_app_secret
 
 ## Chrome Profile (Browser Method)
 
-Each account uses an isolated Chrome profile so logins don't collide.
+Each account gets an isolated Chrome profile:
 
 | Source | Path |
 |--------|------|
@@ -99,3 +99,52 @@ ${BUN_X} {baseDir}/scripts/wechat-api.ts <file> --theme default --account ai-too
 ${BUN_X} {baseDir}/scripts/wechat-article.ts --markdown <file> --theme default --account baoyu
 ${BUN_X} {baseDir}/scripts/wechat-browser.ts --markdown <file> --images ./photos/ --account baoyu
 ```
+
+## Remote API Publishing
+
+How `remote-api` works: SKILL.md Step 2.
+
+### Per-Account Configuration
+
+```md
+default_theme: default
+default_color: blue
+default_publish_method: browser   # browser remains the default
+
+accounts:
+  - name: 宝玉的技术分享
+    alias: baoyu
+    default: true
+    default_publish_method: api
+    # ...
+  - name: AI工具集
+    alias: ai-tools
+    default_publish_method: remote-api
+    default_author: AI工具集
+    app_id: your_ai_tools_app_id
+    app_secret: your_ai_tools_app_secret
+    remote_publish_host: ai-tools-server.example.com
+    remote_publish_user: deploy
+    remote_publish_port: 22
+    remote_publish_identity_file: /home/me/.ssh/id_ed25519
+    remote_publish_known_hosts_file: /home/me/.ssh/known_hosts
+    remote_publish_strict_host_key_checking: accept-new
+```
+
+Account-level `remote_publish_*` values override top-level globals. CLI `--remote-*` flags override both.
+
+### CLI Usage
+
+```bash
+# Use the account's default_publish_method (remote-api here):
+${BUN_X} {baseDir}/scripts/wechat-api.ts <file> --theme default --account ai-tools
+
+# Force remote mode regardless of default_publish_method:
+${BUN_X} {baseDir}/scripts/wechat-api.ts <file> --theme default --account baoyu --remote --remote-host other-server.example.com
+```
+
+### Security Notes
+
+- Authentication is SSH key only. Passwords and `ssh-askpass` are not used.
+- Only the typed `remote_publish_*` keys are read; raw `ssh` / `scp` options are intentionally not supported.
+- The tunnel forwards raw TCP; TLS verification for `api.weixin.qq.com` is still performed end-to-end by the local process.

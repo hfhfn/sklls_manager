@@ -8,6 +8,40 @@
 
 ## 🔴 P0 · 一定不能犯的错
 
+### 0-P. 演讲者模式必须可控、可排练、可恢复、备注不串页
+
+**现象**:演讲者端已经翻页,观众屏仍停在上一页;观众窗口关闭后没有提示;页面重排后,用户改过的讲稿跑到了另一页;或演讲模式入口变成页面右上角的突兀按钮。
+
+**做法**:
+- 演讲入口只放在右下角现有快捷控制区,显示 `P 演讲模式`。
+- 演讲者主体只做“左侧预览 + 右侧备注”两栏;当前页在上、下一页在下,避免形成挤压当前页的三栏布局。
+- 两个预览 iframe 必须严格保持 `16:9`,容器不足时等比缩小并留边,不得裁切或拉伸;小屏优先压缩下一页预览高度。
+- 底栏固定为“左时间、中控制、右页码进度”:左侧分组显示已进行/本页/剩余或超时,中间两行放翻页和会话控制,右侧只放页码与百分比;不要重复当前页标题。会话控制使用“开始计时 / 继续计时 / 重置计时 / 排练”等明确动作名,不使用孤立的“开始”或“重置”。
+- 翻页控制顺序固定为 `首页 / 上一页 / 下一页 / 尾页`;尾页时最后一个按钮变为“重新开始”。自动翻页放在右上角状态栏。
+- `宫格` 放在当前页标题旁,打开时替换当前/下一页预览区;选中页面后回到预览,不要弹出突兀的全屏总览。
+- 右侧卡片依次显示标题、本页目的和草稿备注;设置里的开关用胶囊 switch,时间间隔用美化后的加减 stepper。
+- 观众屏必须显示软件链路状态:`连接中 / 已同步 / 未同步 / 未连接 / 弹窗被拦截`,并始终提供“重新打开观众屏”。
+- 演讲者必须能看到总时长、本页时长、计划/剩余/超时;缺失 `minutes` 时显示横杠,不猜测。
+- 临时新增页面没有对应备注时,界面 fallback 只显示 `—`,不显示“待补充”;校验器仍要报告页面/备注数量不一致。
+- 排练模式记录每页实际时长,本地保留最近 5 次;只做数据汇总,不做 AI 教练评分。
+- 自动翻页默认关闭,`minutes` 与 `autoAdvanceSeconds` 必须分开;总览、圈选、设置、页面隐藏、观众屏暂停或失同步时倒计必须暂停。
+- 必须提供激光笔、圈选、清除、黑屏、白屏和冻结/恢复;标注坐标要归一化同步到观众屏。
+- 预览 iframe 只初次加载,翻页改用 `postMessage` 同步页码;尾页的下一页预览显示“演示结束”,不重复当前页。
+- 退出演讲必须处理 `bye`:脚本打开的观众窗口自动关闭,无法自关时显示“演示已结束”;心跳超时必须显示“未连接”而不是永久停在“未同步”。
+- 演前检查必须覆盖观众屏、弹窗、全屏、字体、图片/视频和 16:9;同时明确提醒它不能检测物理线缆。
+- 备注里的 `section / cue / interaction / delivery / advance / fallback / pronunciation / autoAdvanceSeconds` 都是可选字段;用户大纲没有就整段隐藏。
+- 每页必须有稳定、唯一的 `data-slide-id`;`SPEAKER_NOTES` 数量、顺序和 ID 必须逐页一致。
+- 备注本地编辑按页面 ID 保存;切页重置滚动位置并显示保存状态。
+- 浏览器只能确认观众页面是否同步,不能确认 HDMI/投影线物理连接;现场仍要目视检查外接屏。
+
+**检查**:
+
+```bash
+node <SKILL_ROOT>/scripts/validate-presenter-mode.mjs path/to/index.html
+```
+
+浏览器里关闭观众窗口,确认状态变化;再点击“重新打开观众屏”,确认它恢复到演讲者当前页。再逐项实测内嵌宫格选页返回、计时、排练、自动翻页暂停/恢复、激光笔、圈选、清除、黑屏、白屏、冻结、设置组件和演前检查。缩小浏览器窗口再检查一次:当前页与下一页仍上下排列,两个 iframe 的 `width / height` 仍约等于 `16 / 9`,且没有超出预览容器。
+
 ### 0-S. Swiss locked mode:正文页必须来自原始 22P
 
 **现象**:颜色、字体看起来像 Swiss,但标题跑到中间、图片不在网格上、页面结构和原始 22P 完全不是一套东西。
@@ -75,7 +109,7 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 - 13-15px → weight **500-600**
 - 同一页内,字号小的元素字重必须 ≥ 字号大的元素。
 - **16px 左右小字禁止使用 weight 300**(太细不可读),最低 400,推荐 500。
-- 封面/IKB 反白大标题内强调字用 `italic + weight 300`,不要用 accent 色。
+- 封面/IKB 反白大标题内强调字：英文 `italic + weight 300`，中文 `font-weight:400`（中文不用斜体），不要用 accent 色。
 
 **检查**:
 - `rg -n "font-size:(10px|11px|12px|13px)|max\\((9|10|11|12|13)px" index.html`
@@ -139,7 +173,7 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 **做法**(瑞士风必守):
 - **封面强制 `<section class="slide accent">`**(满屏 IKB),不要 `slide.light`,也不要 `slide.dark`;在 `.canvas-card` 内**第一个子元素**插入 `<canvas class="ascii-bg">`(ASCII 字符呼吸场,模板自带 IIFE 自动激活)
 - **不要再写"01"等编号大字**:`.chrome-min` 已经显示 `01 / N`,封面再放一个巨大的"01"=同义重复,直接删掉
-- **强调字必须用斜体**:`font-style:italic;font-weight:300`,**禁止**用 `color:var(--accent)`——IKB 蓝压 IKB 蓝,人眼看不见任何强调
+- **强调字**：英文用斜体 `font-style:italic;font-weight:300`，中文用 `font-weight:400`（中文没有斜体字形，不要用 italic），**禁止**用 `color:var(--accent)`——IKB 蓝压 IKB 蓝,人眼看不见任何强调
 - **封底强制 `slide.split`** 双半屏,左半 `.half.b-accent` + ASCII canvas(与封面色彩闭环),右半 paper 白底放 3 条 takeaway;**第 03 条**用 `var(--accent)` 上色,完成"开场全 IKB ↔ 收尾半 IKB"的色彩闭环
 - ASCII canvas 在模板的 `<style>` 里已经预设 `mix-blend-mode:screen;opacity:.92`,不要去动这个值
 - 封面/封底主标题字号双约束:`min(11.6vw,19vh)` ~ `min(8vw,14vh)`(遵守 Y ≥ X × 1.6 规则)
@@ -147,7 +181,7 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 **自检命令**:
 - `grep -c "ascii-bg" index.html`——封面 + 封底应至少命中 ≥ 2(各一个 canvas)
 - `grep -E '"slide accent"' index.html | head -1`——封面应是 `slide accent` 而非 `slide light`
-- `grep "color:var(--accent)" index.html`——若命中行同时含 `font-style:italic` 即危险信号(蓝压蓝),改为只 italic 不 accent;只有封底"03 takeaway"那一处用 `var(--accent)` 是合法的(此时背景是白色)
+- `grep "color:var(--accent)" index.html`——若命中行同时含 `font-style:italic` 即危险信号(蓝压蓝),改为只 italic 不 accent;封底"03 takeaway"在白底上做强调，用 `var(--accent-ink)`(柠檬黄 / 柠檬绿主题下会自动加深到可读)
 - 目视:打开页面看封面有没有"01"等大编号——有就删
 
 ### 0-C. 瑞士风大字号双约束:`min(Xvw, Yvh)` 中 Y ≥ X × 1.6
@@ -173,6 +207,13 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 
 **根因**:瑞士风的图片不是装饰,而是 grid 里的证据块。没有先选原始版式和图片槽位,就会把任意图片硬塞进页面。
 
+**先判断图像角色**:
+- 证据截图、UI、代码、dashboard:保真优先,关键文字和数据不能裁;需要统一比例时先做截图背景画布和 `.fit-contain`。
+- 已按槽位生成的信息图/插图:按 S22/S15/S16 的目标比例铺满,不要再缩成短小图片。
+- 照片/产品图/人物图:必须写清 `object-position`,主体不能被裁切、标题块或 caption 压住。
+- 文字压图:必须先判断是否有足够 quiet zone;没有低细节留白就不要把标题压在图上。
+- 多图组:统一比例、高度、容器样式和 caption 密度;视觉角色不同的图不要硬放同一组。
+
 **做法**:
 - 先选版式:单张大图 + KPI 用 `S22`;多图用 `S15/S16` 的原始网格骨架改造
 - S22 生成图比例固定 `21:9`,并在 `<img>` 上写 `data-image-slot="s22-hero-21x9"`
@@ -183,6 +224,8 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 - 用户原始截图要先读 `references/screenshot-framing.md`:优先用 `assets/screenshot-backgrounds/` 内置主题背景 + 程序化缩放/留边/对齐,不要为了比例统一就重画截图内容
 - 截图背景必须跟随当前主题色,且可裁成 `21:9` / `16:10` / `4:3` / `1:1`;背景里不能有标题、页脚、边框、logo、人物或明显主体
 - GPT-M 2.0 提示词必须写明:Swiss Style、单一 accent、直角、无渐变/阴影/圆角、无页眉页脚标题角标
+
+- 文字压图 / 全屏主视觉必须先做 quiet-zone 判断:至少约 30% 低细节区域可承载标题;不通过就换图、换裁切或改成图文分栏,不要整页套黑色/白色遮罩
 
 **自检命令**:
 - `grep -E "frame-img.*border-radius|box-shadow" index.html`——命中就删
@@ -206,6 +249,29 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 - 视觉:翻到该页,看最后一行 caption/label 是否明显高于分页组件
 - 代码:`grep -E "align-items:end|align-self:end|bottom:0|bottom:2vh|margin-top:auto" index.html`,命中后逐个确认是否有 nav safe zone
 
+### 0-D-3. 后验测量:先量超出和空白,再改版式
+
+**现象**:一页只超出 20-30px,但修的时候删掉大块内容,结果下方多出一大片空白;或者标题与正文贴在一起,肉眼检查时容易漏。
+
+**做法**:
+- 生成后运行 `node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html`
+- 如果环境里能解析到 Playwright,校验器会额外执行真实渲染测量:
+  - `M1 DOM/visual overflow`:量出超出多少 px,并指出最低/最高的问题元素
+  - `M1 bottom whitespace`:量出底部空白和 active content height,防止从"超出"修成"巨空"
+  - `M1 nav-safe`:量出最低内容是否进入底部分页安全线
+  - `M2 title gap`:量出标题到下一块内容的距离,防止标题和正文贴住
+
+**Overflow 修正阶梯**:
+- `1-40px` over:只做微调,上移内容组或收紧一个 gap/padding;不要删内容。
+- `40-90px` over:局部压缩 gap/padding 或降低一个模块高度;仍然优先保留内容。
+- `90-160px` over:轻微压标题或压缩一段正文,再考虑拆页。
+- `160px+` over:才考虑换更高容量版式、合并模块或删内容。
+
+**修完反查**:
+- 如果 `M1 bottom whitespace` 变大,说明修过头了;恢复部分间距、放大最后一块或把内容组向下回调。
+- 每轮只做一个档位的调整,重渲染后再跑 validator。
+- 不要靠多模态肉眼先猜;超出、底部空白和标题间距先看测量值。
+
 ---
 
 ### 0-E. Swiss 模板还原度守卫:原始 PPT 是 golden source
@@ -215,7 +281,7 @@ node <SKILL_ROOT>/scripts/validate-swiss-deck.mjs path/to/index.html
 **根因**:把新增图片版式或实验结构写成了全局样式修改,或无意改动了原始基座类,例如 `.h-hero` / `.h-xl` 字重、`.tl-node` 列宽、`.duo-compare` 间距。
 
 **做法**:
-- 原始参考文件 `/Users/guohao/Documents/op7418的仓库/项目/Thin-Harness-Fat-Skills/ppt/index.html` 是 Swiss 主题的 golden source,但要以**实际页面用法**为准,不要只看未使用的 CSS helper
+- 仓库内的 `assets/template-swiss.html` 是 Swiss 主题的 golden source 快照,但要以**实际页面用法**为准,不要只看未使用的 CSS helper
 - 原始页面的大标题大量使用 `font-weight:200`,强调词/数字用 `300`;`.h-hero` / `.h-xl` / `.h-hero-zh` / `.h-xl-zh` 在本模板里必须保持轻字重,不要恢复成 800/900
 - 除新增封面/封底 ASCII 机制、S22 图片槽位修复、横向时间线 label 居中修复、以及把标题 helper 校正为实际轻字重外,不要改动原始基座 CSS/JS recipe
 - 新增图片能力必须绑定到 S22/S15/S16 原始槽位,不要发明新正文结构
@@ -527,7 +593,8 @@ JS 会动态算总页数并扩展底部翻页圆点，但 `.chrome` 里的 `XX /
   □ 瑞士风:封底是 `slide split` + 左 `b-accent` + ASCII canvas / 右 paper 3 条 takeaway,第 03 条用 var(--accent)
   □ 瑞士风:`grep -c "ascii-bg" index.html` ≥ 2(封面 + 封底各一)
   □ 瑞士风:封面没有"01"等大编号(chrome 已显示 01/N,不要重复)
-  □ 瑞士风:IKB 背景上的强调字用 `font-style:italic`,禁止用 `color:var(--accent)`(蓝压蓝)
+  □ 瑞士风:IKB 背景上的强调字英文用 `font-style:italic`、中文用 `font-weight:400`,禁止用 `color:var(--accent)`(蓝压蓝)
+  □ 强调色当文字色：小字用 `var(--accent-ink)`、大字用 `var(--accent-display)`，不要直接写 `var(--accent)`(柠檬黄 / 柠檬绿主题下看不见)
 
 内容
   □ 每一幕的页数比例合理(不会头重脚轻)

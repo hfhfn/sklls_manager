@@ -11,7 +11,7 @@
   "source": {
     "type": "skillssh",
     "ref": "yizhiyanhua-ai/fireworks-tech-graph/fireworks-tech-graph",
-    "subpath": null,
+    "subpath": "skills\\fireworks-tech-graph",
     "branch": null
   }
 }

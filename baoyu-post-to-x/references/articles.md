@@ -1,14 +1,8 @@
 # X Articles - Detailed Guide
 
-Publish Markdown articles to X Articles editor with rich text formatting and images.
+Requires X Premium, Google Chrome, and `bun`. Mode selection, the publish gate, and the step-by-step Codex Chrome plugin / Computer Use workflows are in SKILL.md ("Execution Mode Selection", "X Articles (UI Modes)").
 
-## Prerequisites
-
-- X Premium subscription (required for Articles)
-- Google Chrome installed
-- `bun` installed
-
-## Usage
+## CDP Script Fallback
 
 ```bash
 # Publish markdown article (preview mode)
@@ -21,38 +15,7 @@ ${BUN_X} {baseDir}/scripts/x-article.ts article.md --cover ./cover.jpg
 ${BUN_X} {baseDir}/scripts/x-article.ts article.md --submit
 ```
 
-## Markdown Format
-
-```markdown
----
-title: My Article Title
-cover_image: /path/to/cover.jpg
----
-
-# Title (becomes article title)
-
-Regular paragraph text with **bold** and *italic*.
-
-## Section Header
-
-More content here.
-
-![Image alt text](./image.png)
-
-- List item 1
-- List item 2
-
-1. Numbered item
-2. Another item
-
-> Blockquote text
-
-[Link text](https://example.com)
-
-\`\`\`
-Code blocks become blockquotes (X doesn't support code)
-\`\`\`
-```
+Do not use `--submit` unless the user has explicitly confirmed the final public publish action.
 
 ## Frontmatter Fields
 
@@ -118,7 +81,7 @@ JSON output:
 | `1. item` | `<ol><li>` |
 | `![](img)` | Image placeholder |
 
-## Workflow
+## CDP Script Workflow (Fallback)
 
 1. **Parse Markdown**: Extract title, cover, content images, generate HTML
 2. **Launch Chrome**: Real browser with CDP, persistent login
@@ -127,54 +90,32 @@ JSON output:
 5. **Upload Cover**: Use file input for cover image
 6. **Fill Title**: Type title into title field
 7. **Paste Content**: Copy HTML to clipboard, paste into editor
-8. **Insert Images**: For each placeholder (reverse order):
-   - Find placeholder text in editor
-   - Select the placeholder
-   - Copy image to clipboard
-   - Paste to replace selection
+8. **Insert Images**: For each placeholder in placeholder order:
+   - Find and click the placeholder text in the editor
+   - Use `Insert` -> `Media`
+   - Click the modal's icon button labeled `Add photos or video`
+   - Upload the matching image file
+   - Delete the leftover placeholder text with `Delete` after the image appears
 9. **Post-Composition Check** (automatic):
    - Scan editor for remaining `XIMGPH_` placeholders
    - Compare expected vs actual image count
    - Warn if issues found
 10. **Review**: Browser stays open for 60s preview
-11. **Publish**: Only with `--submit` flag
-
-## Example Session
-
-```
-User: /post-to-x article ./blog/my-post.md --cover ./thumbnail.png
-
-Claude:
-1. Parses markdown: title="My Post", 3 content images
-2. Launches Chrome with CDP
-3. Navigates to x.com/compose/articles
-4. Clicks create button
-5. Uploads thumbnail.png as cover
-6. Fills title "My Post"
-7. Pastes HTML content
-8. Inserts 3 images at placeholder positions
-9. Reports: "Article composed. Review and use --submit to publish."
-```
+11. **Publish**: Only with `--submit` flag and explicit user confirmation
 
 ## Troubleshooting
 
 - **No create button**: Ensure X Premium subscription is active
 - **Cover upload fails**: Check file path and format (PNG, JPEG)
-- **Images not inserting**: Verify placeholders exist in pasted content
+- **Images not inserting**: Verify placeholders exist in pasted content; use `Insert` -> `Media` -> modal icon button `Add photos or video`, not image clipboard paste, the dropzone text, or the hidden file input.
 - **Content not pasting**: Check HTML clipboard: `${BUN_X} {baseDir}/scripts/copy-to-clipboard.ts html --file /tmp/test.html`
+- **Chrome plugin `native pipe is closed`**: retry once after 2 seconds, then run Chrome skill checks; ask before opening a new Chrome window if checks pass.
+- **Chrome plugin upload `Not allowed`**: enable file URL access for the Codex Chrome Extension in `chrome://extensions` → Details.
+- **Computer Use unavailable**: Use the CDP fallback script, unless the user explicitly required Chrome Computer Use.
+- **Placeholder remains after upload**: Select only the placeholder text and press `Delete` after upload completes. Use `Backspace` only if `Delete` fails and the selection is exactly the placeholder.
 
 ## How It Works
 
-1. `md-to-html.ts` converts Markdown to HTML:
-   - Extracts frontmatter (title, cover)
-   - Converts markdown to HTML
-   - Replaces images with unique placeholders
-   - Downloads remote images locally
-   - Returns structured JSON
-
-2. `x-article.ts` publishes via CDP:
-   - Launches real Chrome (bypasses detection)
-   - Uses persistent profile (saved login)
-   - Navigates and fills editor via DOM manipulation
-   - Pastes HTML from system clipboard
-   - Finds/selects/replaces each image placeholder
+- `md-to-html.ts`: extracts frontmatter (title, cover), converts Markdown to HTML, replaces images with unique placeholders, downloads remote images locally, returns structured JSON.
+- Chrome plugin / Computer Use: publish through the user's real Chrome session; body pasted as rich HTML via `copy-to-clipboard.ts`; body images inserted via `Insert` → `Media` → `Add photos or video`; final publish click stays under user confirmation.
+- `x-article.ts` (CDP fallback): launches real Chrome (bypasses detection) with a persistent profile (saved login), fills the editor via DOM manipulation, pastes HTML from the system clipboard, then finds/selects/replaces each image placeholder.

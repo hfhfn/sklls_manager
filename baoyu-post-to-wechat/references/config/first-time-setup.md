@@ -5,42 +5,11 @@ description: First-time setup flow for baoyu-post-to-wechat preferences
 
 # First-Time Setup
 
-## Overview
-
-When no EXTEND.md is found, guide user through preference setup.
-
-**BLOCKING OPERATION**: This setup MUST complete before ANY other workflow steps. Do NOT:
-- Ask about content or files to publish
-- Ask about themes or publishing methods
-- Proceed to content conversion or publishing
-
-ONLY ask the questions in this setup flow, save EXTEND.md, then continue.
-
-## Setup Flow
-
-```
-No EXTEND.md found
-        |
-        v
-+---------------------+
-| AskUserQuestion     |
-| (all questions)     |
-+---------------------+
-        |
-        v
-+---------------------+
-| Create EXTEND.md    |
-+---------------------+
-        |
-        v
-    Continue to Step 1
-```
+**BLOCKING**: when no EXTEND.md exists, complete this setup before ANY other step — don't ask about content, files, themes or methods, and don't convert or publish. Ask only these questions, save EXTEND.md, then continue.
 
 ## Questions
 
-**Language**: Use user's input language or saved language preference.
-
-Use AskUserQuestion with ALL questions in ONE call:
+Use the user's language (or saved language preference). Ask ALL questions in ONE AskUserQuestion call:
 
 ### Question 1: Default Theme
 
@@ -74,7 +43,7 @@ options:
     description: "#009874 翡翠绿"
 ```
 
-Note: User can choose "Other" to type any preset name (vermilion, yellow, purple, sky, rose, olive, black, gray, pink, orange) or hex value.
+"Other" accepts any preset (vermilion, yellow, purple, sky, rose, olive, black, gray, pink, orange) or hex.
 
 ### Question 3: Default Publishing Method
 
@@ -86,7 +55,11 @@ options:
     description: "Fast, requires API credentials (AppID + AppSecret)"
   - label: "browser"
     description: "Slow, requires Chrome and login session"
+  - label: "remote-api"
+    description: "Fast, tunnels WeChat API calls through SSH to a server whose IP is on the WeChat allowlist"
 ```
+
+If `remote-api` is chosen, prompt for `remote_publish_host` and optionally `remote_publish_user`, `remote_publish_identity_file` (or fill in EXTEND.md later).
 
 ### Question 4: Default Author
 
@@ -97,8 +70,6 @@ options:
   - label: "No default"
     description: "Leave empty, specify per article"
 ```
-
-Note: User will likely choose "Other" to type their author name.
 
 ### Question 5: Open Comments
 
@@ -157,12 +128,25 @@ options:
 ```md
 default_theme: [default/grace/simple/modern]
 default_color: [preset name, hex, or empty for theme default]
-default_publish_method: [api/browser]
+default_publish_method: [api/browser/remote-api]
 default_author: [author name or empty]
 need_open_comment: [1/0]
 only_fans_can_comment: [1/0]
 chrome_profile_path:
+
+# Remote API publishing — only fill in if default_publish_method is remote-api
+# or you plan to pass --remote on the CLI.
+remote_publish_host:
+remote_publish_user:
+remote_publish_port:
+remote_publish_identity_file:
+remote_publish_known_hosts_file:
+remote_publish_strict_host_key_checking:
+remote_publish_connect_timeout:
+remote_publish_proxy_jump:
 ```
+
+Only the typed keys above are honored (no raw `ssh`/`scp` options). SSH key auth only.
 
 ### Multi-Account
 
@@ -174,30 +158,25 @@ accounts:
   - name: [display name]
     alias: [short key, e.g. "baoyu"]
     default: true
-    default_publish_method: [api/browser]
+    default_publish_method: [api/browser/remote-api]
     default_author: [author name]
     need_open_comment: [1/0]
     only_fans_can_comment: [1/0]
     app_id: [WeChat App ID, optional]
     app_secret: [WeChat App Secret, optional]
+    # Remote API publishing (optional, per-account override of globals)
+    remote_publish_host:
+    remote_publish_user:
+    remote_publish_identity_file:
   - name: [second account name]
     alias: [short key, e.g. "ai-tools"]
-    default_publish_method: [api/browser]
+    default_publish_method: [api/browser/remote-api]
     default_author: [author name]
     need_open_comment: [1/0]
     only_fans_can_comment: [1/0]
 ```
 
-## Adding More Accounts Later
+## Later Changes
 
-After initial setup, users can add accounts by editing EXTEND.md:
-
-1. Add an `accounts:` block with list items
-2. Move per-account settings (author, publish method, comments) into each account entry
-3. Keep global settings (theme, color) at the top level
-4. Each account needs a unique `alias` (used for CLI `--account` arg and Chrome profile naming)
-5. Set `default: true` on the primary account
-
-## Modifying Preferences Later
-
-Users can edit EXTEND.md directly or delete it to trigger setup again.
+- Add accounts: add an `accounts:` block, move per-account settings (author, publish method, comments) into entries, keep theme/color global, give each a unique `alias` (used by `--account` and Chrome profile naming), set `default: true` on the primary.
+- Edit EXTEND.md directly, or delete it to rerun setup.

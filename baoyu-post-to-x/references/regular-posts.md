@@ -1,21 +1,22 @@
 # Regular Posts - Detailed Guide
 
-Detailed documentation for posting text and images to X.
+The Computer Use flow for regular posts is in SKILL.md ("Chrome Computer Use Mode").
 
-## Manual Workflow
+## Detecting Chrome Computer Use (Codex)
 
-If you prefer step-by-step control:
+1. If Computer Use tools are visible, call `get_app_state` for `Google Chrome`.
+2. If not, `tool_search` for `computer-use get_app_state click press_key drag scroll Google Chrome`, then call `get_app_state`.
+3. If it succeeds, use the user's real Chrome with Computer Use for all X UI actions; use CDP scripts only when Computer Use is unavailable or explicitly requested.
 
-### Step 1: Copy Image to Clipboard
+If the user explicitly asks for Chrome Computer Use, do not use Playwright, the in-app Browser, or CDP without approval.
+
+## Manual Clipboard Steps
 
 ```bash
+# Copy image to clipboard
 ${BUN_X} {baseDir}/scripts/copy-to-clipboard.ts image /path/to/image.png
-```
 
-### Step 2: Paste from Clipboard
-
-```bash
-# Simple paste to frontmost app
+# Paste to frontmost app
 ${BUN_X} {baseDir}/scripts/paste-from-clipboard.ts
 
 # Paste to Chrome with retries
@@ -25,47 +26,9 @@ ${BUN_X} {baseDir}/scripts/paste-from-clipboard.ts --app "Google Chrome" --retri
 ${BUN_X} {baseDir}/scripts/paste-from-clipboard.ts --delay 200
 ```
 
-### Step 3: Use Playwright MCP (if Chrome session available)
-
-```bash
-# Navigate
-mcp__playwright__browser_navigate url="https://x.com/compose/post"
-
-# Get element refs
-mcp__playwright__browser_snapshot
-
-# Type text
-mcp__playwright__browser_click element="editor" ref="<ref>"
-mcp__playwright__browser_type element="editor" ref="<ref>" text="Your content"
-
-# Paste image (after copying to clipboard)
-mcp__playwright__browser_press_key key="Meta+v"  # macOS
-# or
-mcp__playwright__browser_press_key key="Control+v"  # Windows/Linux
-
-# Screenshot to verify
-mcp__playwright__browser_take_screenshot filename="preview.png"
-```
-
 ## Image Support
 
-- Formats: PNG, JPEG, GIF, WebP
-- Max 4 images per post
-- Images copied to system clipboard, then pasted via keyboard shortcut
-
-## Example Session
-
-```
-User: /post-to-x "Hello from Claude!" --image ./screenshot.png
-
-Claude:
-1. Runs: ${BUN_X} {baseDir}/scripts/x-browser.ts "Hello from Claude!" --image ./screenshot.png
-2. Chrome opens with X compose page
-3. Text is typed into editor
-4. Image is copied to clipboard and pasted
-5. Browser stays open 30s for preview
-6. Reports: "Post composed. Use --submit to post."
-```
+PNG, JPEG, GIF, WebP; max 4 images per post. Images are copied to the system clipboard, then pasted via keyboard shortcut.
 
 ## Troubleshooting
 
@@ -78,23 +41,15 @@ Claude:
 - **osascript permission denied**: Grant Terminal accessibility permissions in System Preferences
 - **Rate limited**: Wait a few minutes before retrying
 
-## How It Works
+## How the CDP Fallback Works (`x-browser.ts`)
 
-The `x-browser.ts` script uses Chrome DevTools Protocol (CDP) to:
-1. Launch real Chrome (not Playwright) with `--disable-blink-features=AutomationControlled`
-2. Use persistent profile directory for saved login sessions
-3. Interact with X via CDP commands (Runtime.evaluate, Input.dispatchKeyEvent)
-4. **Paste images using osascript** (macOS): Sends real Cmd+V keystroke to Chrome, bypassing CDP's synthetic events that X can detect
-
-This approach bypasses X's anti-automation detection that blocks Playwright/Puppeteer.
-
-### Image Paste Mechanism (macOS)
-
-CDP's `Input.dispatchKeyEvent` sends "synthetic" keyboard events that websites can detect. X ignores synthetic paste events for security. The solution:
-
-1. Copy image to system clipboard via Swift/AppKit (`copy-to-clipboard.ts`)
-2. Bring Chrome to front via `osascript`
-3. Send real Cmd+V keystroke via `osascript` and System Events
-4. Wait for upload to complete
+1. Launches real Chrome (not Playwright) with `--disable-blink-features=AutomationControlled` — X blocks Playwright/Puppeteer
+2. Persistent profile directory keeps the login
+3. Interacts via CDP (`Runtime.evaluate`, `Input.dispatchKeyEvent`)
+4. Pastes images with a real keystroke, because X ignores CDP's synthetic paste events (macOS):
+   1. Copy image to system clipboard via Swift/AppKit (`copy-to-clipboard.ts`)
+   2. Bring Chrome to front via `osascript`
+   3. Send real Cmd+V via `osascript` and System Events
+   4. Wait for upload to complete
 
 This requires Terminal to have "Accessibility" permission in System Settings.
