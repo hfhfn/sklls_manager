@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill_id": "8b374674-034d-4454-bfb9-22a3b383410d",
+  "path": "motion-showreel",
+  "path_key": "motion-showreel",
+  "enabled": true,
+  "tags": [
+    "garden",
+    "编程方式制作动画视频"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "conardli/garden-skills/motion-showreel",
+    "subpath": "skills\\motion-showreel",
+    "branch": null
+  }
+}
