@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "skill_id": "bc284d96-4181-412c-96ed-aa51d9993547",
+  "path": "wecom-sheet-replicator",
+  "path_key": "wecom-sheet-replicator",
+  "enabled": true,
+  "tags": [
+    "documents",
+    "办公",
+    "自定义"
+  ],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

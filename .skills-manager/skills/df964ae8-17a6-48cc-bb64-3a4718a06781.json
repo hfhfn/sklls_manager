@@ -5,6 +5,8 @@
   "path_key": "feishu-doc-migration",
   "enabled": true,
   "tags": [
+    "documents",
+    "办公",
     "自定义"
   ],
   "source": {
