@@ -4,9 +4,7 @@
   "path": "deepseek-ocr",
   "path_key": "deepseek-ocr",
   "enabled": true,
-  "tags": [
-    "自定义"
-  ],
+  "tags": [],
   "source": {
     "type": "local",
     "ref": null,

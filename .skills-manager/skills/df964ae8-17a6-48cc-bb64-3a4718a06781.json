@@ -6,8 +6,7 @@
   "enabled": true,
   "tags": [
     "documents",
-    "办公",
-    "自定义"
+    "办公"
   ],
   "source": {
     "type": "import",
