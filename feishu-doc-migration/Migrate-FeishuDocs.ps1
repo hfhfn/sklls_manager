@@ -998,7 +998,7 @@ function Invoke-MigrateSingleDoc {
     $xml = $docContent.content
 
     # 2. 提取并下载图片
-    $imageTokens = Extract-ImageTokens -XmlContent $xml
+    $imageTokens = @(Extract-ImageTokens -XmlContent $xml)
     $tokenToPath = @{}
 
     if ($imageTokens.Count -gt 0) {
@@ -1025,7 +1025,7 @@ function Invoke-MigrateSingleDoc {
     }
 
     # 3. 提取并下载文件附件
-    $sourceTokens = Extract-SourceTokens -XmlContent $xml
+    $sourceTokens = @(Extract-SourceTokens -XmlContent $xml)
     if ($sourceTokens.Count -gt 0) {
         Write-Log "  发现 $($sourceTokens.Count) 个附件，开始下载..." -Level INFO
         $fileDir = Join-Path $docWorkDir "files"
