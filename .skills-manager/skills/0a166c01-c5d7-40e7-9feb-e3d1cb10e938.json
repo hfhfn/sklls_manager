@@ -4,7 +4,10 @@
   "path": "minicharts",
   "path_key": "minicharts",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "办公",
+    "图表"
+  ],
   "source": {
     "type": "local",
     "ref": null,
