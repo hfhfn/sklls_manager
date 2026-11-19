@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "0a166c01-c5d7-40e7-9feb-e3d1cb10e938",
+  "path": "minicharts",
+  "path_key": "minicharts",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}

@@ -33,7 +33,7 @@ for _k in ("PYTHONPATH", "PYTHONHOME"):
     os.environ.pop(_k, None)
 
 from common import (ProgressLog, load_config, get_intermediate_dir,
-                    user_config_path)
+                    user_config_path, harden_stdio)
 from ingest import ingest, probe_duration
 from transcribe import transcribe
 from keyframes import keyframes
@@ -42,6 +42,9 @@ from describe import describe_frames
 from assemble import assemble
 from refine import refine as refine_md
 from note import build_note
+
+# GBK 控制台下 print 含 U+FFFD 的文本会抛 UnicodeEncodeError，整条转录当场中断。
+harden_stdio()
 
 
 def _cleanup_intermediate(inter, keep, plog):
@@ -64,7 +67,8 @@ def _is_douyin(s):
 
 def _douyin_fallback(input_, work_dir, plog):
     """yt-dlp 被抖音拦截时，用浏览器 CDN 直链下载。返回 (mp4 绝对路径, 标题, note_uid)。
-    视频成功 → (mp4, title, None)；真图文帖(/note) → (None, None, note_uid)。"""
+    视频成功 → (mp4, title, None)；真图文帖(/note) → (None, None, note_uid)。
+    无法判定（UNKNOWN）→ 抛 RuntimeError，**绝不**当成图文帖。"""
     dl = str(Path(__file__).resolve().parent / "douyin_download.py")
     py = sys.executable
     env = dict(os.environ)
@@ -81,6 +85,8 @@ def _douyin_fallback(input_, work_dir, plog):
             if m:
                 uid = m.group(1)
                 break
+        if not uid:
+            raise RuntimeError("下载器报告图文帖但没给出 uid")
         if plog:
             plog.log(f"图文帖(/note/<{uid}>)，交给图文 OCR（note_ocr）")
         return None, "", uid

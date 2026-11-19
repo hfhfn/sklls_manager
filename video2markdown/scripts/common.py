@@ -8,6 +8,26 @@ from datetime import datetime
 from pathlib import Path
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
+
+
+def harden_stdio():
+    """把标准流的编码错误从「抛异常」改成「替换字符」。
+
+    中文 Windows 的 stdout 默认是 GBK(cp936)。脚本里经常 print 子进程输出、
+    OCR 文本、异常信息，这些内容可能含 GBK 编不出的字符（典型：UTF-8 解码失败
+    留下的 U+FFFD）。一旦 print 抛 UnicodeEncodeError，整条转录会当场中断、
+    不留任何产物 —— 2026-11 实测过的真实故障。
+
+    只改 errors 不改 encoding：控制台仍是 GBK，中文照常显示，编不出的字符
+    变成 '?'，不会再崩。
+    """
+    for s in (sys.stdout, sys.stderr):
+        try:
+            s.reconfigure(errors="replace")
+        except Exception:      # 非 TextIOWrapper（重定向到特殊流）时放弃
+            pass
+
+
 CONFIG_DEFAULT = {
     "providers": {},
     "failover": {"randomize": True, "retries": 2, "min_delay_s": 2,

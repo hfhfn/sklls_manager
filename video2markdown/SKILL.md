@@ -110,6 +110,22 @@ python C:/Users/hfhfn/.claude/skills/video2markdown/scripts/video2md.py --urls-f
   （`## 图片逐张识别` + `## 全文字合并`），原文配图保留在笔记同目录 `.note_<uid>/`。**不要从
   `RENDER_DATA` 的 `url_list` 取图**——图文正文大图常只出现在渲染后的 `<img>.currentSrc`，且是 `p3-pc-sign.douyinpic.com`
   短签名链；用 `images` 字段判空即可（有 video 说明是视频被登录墙挡了，见上一条，勿误判图文）。
+- **短链直跑会在 note_ocr 崩溃（已修，2026-11-17）**：`video2md.py "<抖音短链>"` 时下载器
+  偶发返回 `NO_VIDEO`（真视频被误判成图文帖），脚本转去 `note_ocr.py`；失败后打印的 `tail`
+  里含 U+FFFD，在中文 Windows 的 GBK stdout 上抛
+  `UnicodeEncodeError: 'gbk' codec can't encode character '\ufffd'`，整条转录当场中断、
+  **不留任何产物**。两处根因都已修：
+  1. `douyin_download.py`：`grab_cdn` 改为返回四元组 `(video, audio, title, status)`，status 三态
+     `video` / `note` / `unknown`。**只有 API 的 `images` 字段非空才判 `note`**；既没抓到轨、
+     API 也没给出结论时报 `UNKNOWN`（退出码 1），**绝不再谎报 NO_VIDEO**——那会让下游拿真视频
+     去抓图并必然失败。`unknown` 会自动重试一次。
+  2. `common.py` 新增 `harden_stdio()`（`sys.stdout/stderr.reconfigure(errors="replace")`），
+     并在 `video2md.py` / `douyin_download.py` / `note_ocr.py` 入口调用。只改 errors 不改
+     encoding，中文照常显示，编不出的字符变 `?`，不会再崩。
+  另：下载器现在会 `ffprobe` 校验音轨，产出无声 mp4 时打 `[warn]` 且旁车记 `has_audio: false`；
+  已存在的 mp4 若缺音频轨会重新下载而不是直接复用。
+  **排查**：日志里出现 `UnicodeEncodeError ... '�'` 且进程无任何 md 产物 = 踩到旧版这个坑；
+  出现 `UNKNOWN <uid>` = 这次真的没抓到（登录墙/临时故障），稍后重试即可，**不要**当成图文帖。
 - **云端 VLM 偶发挂起**：`--vlm on` 会对 ~40–60 帧逐个调免费云端视觉模型，某个请求可能无限挂起
   卡死整条进程。**批量转录用 `--vlm off` 最稳**；单条重点视频再按需 `--vlm on`（配 `timeout 560s` 兜底）。
 - **别用单个超长后台任务跑大批量**：一次后台跑完 N 条视频的长脚本可能被系统 kill（如跑到 ~40 分钟

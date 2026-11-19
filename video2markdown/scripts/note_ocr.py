@@ -24,10 +24,15 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from common import harden_stdio
+
 # 抖音国内 CDN 直连，绝不上代理
 for _k in ("HTTPS_PROXY", "HTTP_PROXY", "ALL_PROXY",
            "https_proxy", "http_proxy", "all_proxy", "NO_PROXY", "no_proxy"):
     os.environ.pop(_k, None)
+
+# GBK 控制台下 print 标题/OCR 文本时遇到编不出的字符会抛异常，整条中断
+harden_stdio()
 
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36 Edg/151.0.0.0")
