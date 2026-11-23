@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "skill_id": "5923ec35-0566-4af3-a5eb-c209fc74c9eb",
+  "path": "obsidian",
+  "path_key": "obsidian",
+  "enabled": true,
+  "tags": [
+    "obsidian",
+    "办公"
+  ],
+  "source": {
+    "type": "local",
+    "ref": null,
+    "subpath": null,
+    "branch": null
+  }
+}
