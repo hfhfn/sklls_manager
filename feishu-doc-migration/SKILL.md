@@ -51,12 +51,15 @@ description: "使用 lark-cli 将飞书文档（知识库节点或独立云文�
 | 图片迁移 | 下载 → 上传 → 替换引用，复制保护文档自动回退到 media-preview |
 | 文件附件 | 支持 file 类型节点迁移（下载 + 上传 + 自动创建 wiki 子节点） |
 | 内部引用修复 | sub-page-list、@文档引用、文档链接全部更新为新文档地址 |
-| 子节点排序 | 按源文档顺序依次创建，保持完全一致的排列顺序 |
+| 子节点排序 | 默认按源文档顺创建；续跑/重试后可加 `-FixOrder` 按源树顺序重排 |
 | 根目录/子节点 | 支持迁移到知识库根目录，或指定父节点下 |
 | 失败清理 | 内容填充失败时自动删除刚创建的空节点，不留重复空文档 |
 | 事务与续跑 | checkpoint 三态（success / partial / failed），断点续跑复用已存在节点，不跳过错漏节点 |
 | 内嵌块规范化 | 迁移前把跨空间必然失败的 `<sheet token>` / `<whiteboard token>` 转成可重建形态，避免内容静默丢失 |
 | 按图分块 | 自动按「字符数 + 图片数」切批，同步块/网格内多图不再因绑定歧义整篇失败 |
+| 图片格式归一化 | webp/tiff/avif 自动转 PNG，超大图缩放到 2000px，避免整篇写入失败 |
+| 写入失败降级 | 整批写入被拒时自动去掉图片重试，保证正文不丢，缺图计入 partial |
+| 附件权限绕过 | 附件下载被拒时回退 `drive +preview`，可拿到受导出保护的 PDF 等原文件 |
 | 错误重试 | 指数退避重试机制，默认 3 次 |
 | 进度输出 | 实时进度条 + 彩色日志 |
 | 结果日志 | 生成 JSON 结果映射表 + 日志文件 |
@@ -75,6 +78,8 @@ description: "使用 lark-cli 将飞书文档（知识库节点或独立云文�
 | `-FixInternalRefs` | - | 是否修复内部引用（默认 `$true`） |
 | `-MaxImgsPerChunk` | - | 每次写入最多携带的图片数（默认 1）。同步块 / 网格内多图时，单个 chunk 带多张图会触发 `bind_ambiguous`，保持默认 1 最稳 |
 | `-OnlyRetryFailed` | - | 续跑时只重试 `status=failed`，把 `partial`（正文已写入、图片无导出权限）视为完成，避免反复重跑已迁好的文档 |
+| `-FixOrder` | - | 迁移结束后按源树顺序重排目标子节点。飞书按创建时间排序，续跑/局部重试会导致顺序错位，需要时加上 |
+| `-NormalizeImages` | - | 是否在下载后把图片转 PNG 并缩放（默认 `$true`）。webp/tiff、超大图会导致整篇写入失败 |
 
 > ✱ `-TargetSpaceId` 和 `-TargetParentWikiUrl` 二选一
 
@@ -176,6 +181,24 @@ JSON 结果包含：
 | `<synced_reference>` | 目标里只剩空占位 | 它是**引用块**（内容在公共区块文档里），不是子文档；跨空间引用失效 | 先判断业务属性：正文类可静态复制内容进来，广告/导航类通常不补 |
 | 单篇 overwrite 很大 | `server time out error` | 单次请求负载过大 | 首块 `overwrite` + 后续 `append` 分块（脚本自动，默认 200000 字符/批） |
 | 一个 chunk 多张图 | `bind_ambiguous` | 图片绑定按顺序对位，批量大易歧义 | `-MaxImgsPerChunk 1`（默认），按图片数也切批 |
+| 图片是 webp / tiff / avif，或单图 >8MB / 边长 >2000px | 整篇「分块 1 写入失败」，文档只剩空节点 | 目标端不接受该格式/尺寸，整批写入被拒 | `-NormalizeImages`（默认开）自动转 PNG + 等比缩放到 2000px；SVG 无法转换会跳过该图 |
+| 图片写入仍失败（批量绑定歧义） | 同上 | 服务端拒绝整批 | 脚本自动去掉该批图片重试一次，正文保留、缺图计入 `image_bind_failed`（partial） |
+| 文档含表格，且表格单元格里有图片 | 目标端表格塌缩成 1x1 空表，单元格内图片全部丢失 | 转换链路丢表格结构，图片绑定在空单元格里失败 | 迁移后按源表顺序 `block_replace` 用源 `<table>` XML（清洗 `id` 属性、`<img>` 换成 `<img path="@./xxx.png"/>`）整表重建，实测 14/14 张表重建成功、行数列数与图片全部还原 |
+| XML 表格单元格内直接写 `<img>` | **整张表退化成纯文本**（页面显示 `<table><tr><td>...`），图也没了 | docx XML 解析器不支持表格单元格内的 img 标签 | 表格里绝不能带 `<img>`：先写不含图的表格，再用 `block_insert_after`（anchor = 单元格内最后一个段落）逐格补图，实测 14/14 成功 |
+| 源 `<table>` 带 `colgroup` / `background-color="rgb(...)"` / `text-color="rgb(...)"` | 整表解析失败、退化为纯文本 | 这些属性值不在 XML 合法枚举内 | 写入前剔除 `colgroup`、所有 `rgb(...)` 颜色属性；`<td>` 内容必须包在 `<p>` 内 |
+| 迁移后正文显示 `<b>xxx</b>`、`<span text-color=...>` 等原始标签（"乱码"） | 整篇文档都是标签文本 | 源文档正文本身就是 HTML 字符串，按 markdown 写入时被整体转义 | 用源 `content.xml` 以 `--doc-format xml` 整篇 `overwrite` 重写；`<span>` 直接 unwrap 去色，`&lt;br&gt;` 还原成 `<br/>` |
+| 标题/正文含裸 `&`（如「架构图&UI界面」） | 整篇 `invalid character entity &xxx (no semicolon)`，写入失败 | XML 中 `&` 必须转义 | 写入前 `&(?!(amp\|lt\|gt\|quot\|apos\|#\d+\|#x[0-9A-Fa-f]+);)` → `&amp;` |
+| `lark-cli` 返回空 stdout，脚本判为失败但无错误信息 | 无法定位失败原因 | CLI 的报错 JSON 输出在 **stderr**，只读 stdout 会丢错误 | 封装 `lark()` 时同时解析 stdout 和 stderr，取首个 `ok=false` 的 JSON 作为错误详情 |
+| 文件附件（PDF 等）下载报 `does not have export permission` | 附件迁移失败 | `docs +media-download` / `+media-preview` 都受导出权限限制 | 脚本第 3 级回退 `drive +preview --file-token <obj_token> --type source_file`，走预览产物通道绕过 |
+| 单图文档首次迁移报 `[System.Char] 不包含 Substring` | 该篇中断 | 图片 token 只有一个时 JSON 数组退化成字符串 | 已修复：图片/附件 token 一律 `@()` 强制数组 |
+| 迁移后子节点顺序与源目录不一致 | 后补/重试的节点排到末尾 | 飞书按创建时间排序，续跑会打乱顺序 | 加 `-FixOrder`：迁移结束按源树顺序对每个父节点重新 move 追加（仅在检测到错位时执行） |
+
+### 长时间运行（大空间）的注意事项
+
+- **user token 约 3 小时过期**：单次运行超过 3 小时后，后续所有 API 返回 `Authentication token expired`，当轮剩余节点全部失败。这不是脚本问题，重新执行同一命令即可从 checkpoint 继续（已 success 的跳过，partial/failed 复用原节点重填）。
+- **建议按根文档分批**：把 `-SourceWikiUrls` 拆成若干批（如每个顶级栏目一批），单批控制在 3 小时内，避免一次性跑太久被 token 过期打断。
+- **进度统计要按 `source_node_token` 去重**：checkpoint 是追加写，同一个节点可能有多次重试记录，直接按行数统计会偏大。
+- **续跑不会重复建节点**：脚本先按源树顺序解析目标父节点下已存在的同名节点并复用；局部重试也复用原节点填充，不会产生重复文档。
 
 ### PowerShell 调用 lark-cli 的固定写法
 
@@ -183,6 +206,8 @@ JSON 结果包含：
 - **`@./content.xml` 的相对路径基准**：由子进程的 `WorkingDirectory` 决定，不是调用方 cwd。自己封装 `Invoke-LarkCli` 时必须显式设置 `ProcessStartInfo.WorkingDirectory`。
 - **函数传参**：`Get-DocContent($token, $dir)` 会把逗号表达式当成**一个数组参数**传入，导致 `$WorkingDir` 为空。必须用命名参数 `Get-DocContent -DocToken $t -WorkingDir $d`。
 - **运行 PowerShell 7**：读取 UTF-8 的 `migration_checkpoint.jsonl` 必须用 `pwsh -NoProfile -File`；Windows PowerShell 5.1 会乱码、JSON 解析失败，统计数量凭空少一半。
+- **`wiki +move` 移到根目录**：`--target-parent-token ""` 不生效，必须改用 `--target-space-id <space_id>`，与 `--target-parent-token` 二选一。
+- **JSON 数组退化**：接口返回的单元素数组在 PowerShell 里会被展开成字符串/对象，`$x.Count` 与索引都会出错。图片、附件 token 列表一律 `@(...)` 包裹后再遍历。
 
 ## 事务语义与断点续跑
 

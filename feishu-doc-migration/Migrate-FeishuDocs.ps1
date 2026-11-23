@@ -73,7 +73,13 @@ param(
     [int]$MaxImgsPerChunk = 1,
 
     # 仅重试 status=failed 的节点；partial（如图片无导出权限）本轮视为完成不再重试
-    [switch]$OnlyRetryFailed
+    [switch]$OnlyRetryFailed,
+
+    # 迁移结束后按源目录顺序重排目标子节点（飞书节点按创建时间排序，续跑/重试会产生错位）
+    [switch]$FixOrder,
+
+    # 图片下载后自动转 PNG / 缩放超大图（webp、超大图会导致整篇写入失败）
+    [bool]$NormalizeImages = $true
 )
 
 # ============================================================
@@ -580,7 +586,25 @@ function Invoke-MediaDownload {
         }
     }
 
-    # 3. 验证文件存在
+    # 3. 仍失败则回退到 drive +preview：
+    #    文件类附件（PDF 等）常因「当前身份无导出权限」在两个 docs 接口都失败，
+    #    而 drive +preview --type source_file 走预览产物通道，通常可以拿到原文件
+    if (-not $savedPath) {
+        Write-Log "    media-preview 不可用，改用 drive +preview" -Level WARN
+        $drivePreview = Invoke-LarkCli -Arguments @(
+            "drive", "+preview",
+            "--file-token", "`"$Token`"",
+            "--type", "source_file",
+            "--output", "`"$OutputPath`"",
+            "--overwrite"
+        ) -Passthru -WorkingDir $outDir
+
+        if ($drivePreview -and $drivePreview.ok) {
+            $savedPath = $drivePreview.data?.saved_path
+        }
+    }
+
+    # 4. 验证文件存在
     if ($savedPath -and (Test-Path $savedPath)) {
         return $savedPath
     }
@@ -590,6 +614,54 @@ function Invoke-MediaDownload {
     $found = Get-ChildItem -Path $dir -Filter "$base.*" -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($found) { return $found.FullName }
     return $null
+}
+
+function Convert-ToSupportedImage {
+    param([string]$Path)
+    <#
+    .DESCRIPTION
+    飞书文档写入只稳定支持 png/jpg/jpeg/gif/bmp；webp / tiff / avif 等格式会让整篇
+    写入失败（表现为「分块 1 写入失败」）。此函数把图片统一转成 PNG，并对超大图
+    （>8MB 或最长边 >2000px）做等比缩放，降低绑定失败概率。
+    SVG 无法用 System.Drawing 渲染，返回 $null 由调用方跳过。
+    #>
+    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) { return $Path }
+    $ext = [System.IO.Path]::GetExtension($Path).ToLower()
+    $size = (Get-Item -LiteralPath $Path).Length
+    $unsupported = $ext -in @(".webp", ".tif", ".tiff", ".avif", ".heic", ".ico", ".svg")
+    if (-not $unsupported -and $size -le 8MB) { return $Path }
+
+    if ($ext -eq ".svg") {
+        Write-Log "    SVG 图片无法自动转换，跳过: $([System.IO.Path]::GetFileName($Path))" -Level WARN
+        return $null
+    }
+    if ($ext -eq ".gif" -and -not $unsupported) { return $Path }   # 动图不缩放，避免丢帧
+
+    try {
+        Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+        $img = [System.Drawing.Image]::FromFile($Path)
+        $maxSide = [Math]::Max($img.Width, $img.Height)
+        $scale = if ($maxSide -gt 2000) { 2000.0 / $maxSide } else { 1.0 }
+        $nw = [Math]::Max(1, [int]($img.Width * $scale))
+        $nh = [Math]::Max(1, [int]($img.Height * $scale))
+        $bmp = New-Object System.Drawing.Bitmap($nw, $nh)
+        $g = [System.Drawing.Graphics]::FromImage($bmp)
+        $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+        $g.DrawImage($img, 0, 0, $nw, $nh)
+        $g.Dispose()
+        $img.Dispose()
+        $newExt = if ($unsupported -or $ext -eq ".png") { ".png" } else { ".jpg" }
+        $newPath = [System.IO.Path]::ChangeExtension($Path, $newExt)
+        $imgFormat = if ($newExt -eq ".png") { [System.Drawing.Imaging.ImageFormat]::Png } else { [System.Drawing.Imaging.ImageFormat]::Jpeg }
+        $bmp.Save($newPath, $imgFormat)
+        $bmp.Dispose()
+        Write-Log "    图片已转换: $([System.IO.Path]::GetFileName($Path)) -> $([System.IO.Path]::GetFileName($newPath)) ($nw x $nh)" -Level INFO
+        return $newPath
+    }
+    catch {
+        Write-Log "    图片转换失败，保留原文件: $($_.Exception.Message)" -Level WARN
+        return $Path
+    }
 }
 
 # ============================================================
@@ -718,8 +790,22 @@ function Invoke-DocOverwriteChunked {
         Write-Log "  分块 $i/$($batches.Count) ($command)" -Level INFO
         $r = Invoke-LarkCli -Arguments $updateArgs -Passthru -WorkingDir $DocWorkDir
         if (-not $r -or ($r.ok -ne $true -and -not $r.data.document.url)) {
-            Write-Log "  分块 $i 写入失败" -Level ERROR
-            return $null
+            # 整批写入失败时先去掉图片重试一次：单张图片格式/尺寸不被接受会让整篇失败，
+            # 丢掉图片也比丢掉整篇正文好，正文成功后再把缺图计入 partial 供人工补
+            $imgsInBatch = ([regex]::Matches($batches[$i - 1], '<img\b')).Count
+            if ($imgsInBatch -gt 0) {
+                Write-Log "  分块 $i 含 $imgsInBatch 张图片写入失败，去掉图片重试" -Level WARN
+                $textOnly = [regex]::Replace($batches[$i - 1], '<img\b[^>]*>', '')
+                $textOnly | Out-File -LiteralPath $filePath -Encoding UTF8 -NoNewline
+                $r = Invoke-LarkCli -Arguments $updateArgs -Passthru -WorkingDir $DocWorkDir
+                if ($r -and ($r.ok -eq $true -or $r.data.document.url)) {
+                    $imgFail += $imgsInBatch
+                }
+            }
+            if (-not $r -or ($r.ok -ne $true -and -not $r.data.document.url)) {
+                Write-Log "  分块 $i 写入失败" -Level ERROR
+                return $null
+            }
         }
         $imgFail += @($r.data.local_resource_failures | Where-Object { $_.kind -eq "image" }).Count
         $last = $r
@@ -1014,6 +1100,10 @@ function Invoke-MigrateSingleDoc {
             $shortToken = $token.Substring(0, [Math]::Min(12, $token.Length))
             Write-ProgressBar -Current ($i + 1) -Total $imageTokens.Count -Activity "下载图片" -Status $shortToken
             $downloaded = Invoke-MediaDownload -Token $token -OutputPath $imgOutput
+            if ($downloaded -and $NormalizeImages) {
+                # webp / 超大图会导致整篇写入失败，先统一转 PNG 并缩放
+                $downloaded = Convert-ToSupportedImage -Path $downloaded
+            }
             if ($downloaded) {
                 $tokenToPath[$token] = $downloaded
             }
@@ -1498,6 +1588,11 @@ function Invoke-MigrateTree {
         Invoke-RepairAllInternalRefs -MigratedDocs $migratedDocs -RootWorkDir $RootWorkDir
     }
 
+    # 第三阶段（可选）：按源目录顺序重排目标节点
+    if ($FixOrder -and $targetParentMap.Count -gt 0) {
+        Invoke-FixNodeOrder -Tree $tree -TargetMap $targetParentMap
+    }
+
     Write-Log ""
     Write-Log "========================================" -Level SUCCESS
     Write-Log "迁移完成！" -Level SUCCESS
@@ -1505,6 +1600,60 @@ function Invoke-MigrateTree {
     Write-Log "  失败: $Script:FailedCount" -Level ERROR
     Write-Log "  跳过: $Script:SkippedCount" -Level WARN
     Write-Log "========================================" -Level SUCCESS
+}
+
+function Invoke-FixNodeOrder {
+    param([array]$Tree, [hashtable]$TargetMap)
+    <#
+    .DESCRIPTION
+    飞书知识库的子节点按创建时间排序，断点续跑或局部重试后，后补的节点会落到末尾，
+    与源目录顺序不一致。这里按源树的层级顺序，对每个目标父节点把子节点依次
+    move 回同一父节点（飞书语义：移动到同一父节点 = 追加到末尾），从而恢复源顺序。
+    仅当检测到顺序不一致时才执行，避免无意义的大量 move 调用。
+    #>
+    $children = @{}
+    foreach ($n in $Tree) {
+        $p = if ($n.parent_node_token) { $n.parent_node_token } else { "" }
+        if (-not $children.ContainsKey($p)) { $children[$p] = @() }
+        $children[$p] += $n
+    }
+
+    $checked = 0
+    $moves = 0
+    foreach ($srcParent in $children.Keys) {
+        $targetParent = if ($srcParent) { $TargetMap[$srcParent] } else { "" }
+        if ($srcParent -and -not $targetParent) { continue }
+
+        $desired = @()
+        foreach ($k in $children[$srcParent]) {
+            $t = $TargetMap[$k.node_token]
+            if ($t) { $desired += $t }
+        }
+        if ($desired.Count -lt 2) { continue }
+
+        $checked++
+        $current = @(Get-WikiChildNodes -SpaceId $Script:TargetSpaceIdResolved -ParentNodeToken $targetParent)
+        $currentTokens = @($current | Where-Object { $desired -contains $_.node_token } | ForEach-Object { $_.node_token })
+        if (($currentTokens -join ",") -eq ($desired -join ",")) { continue }
+
+        for ($i = 0; $i -lt $desired.Count; $i++) {
+            $moveArgs = @(
+                "wiki", "+move",
+                "--node-token", "`"$($desired[$i])`"",
+                "--as", $AsUser
+            )
+            if ($targetParent) {
+                $moveArgs += @("--target-parent-token", "`"$targetParent`"")
+            }
+            else {
+                $moveArgs += @("--target-space-id", $Script:TargetSpaceIdResolved)
+            }
+            Invoke-LarkCli -Arguments $moveArgs | Out-Null
+            $moves++
+        }
+        Write-Log "  已按源顺序重排 $($desired.Count) 个子节点" -Level INFO
+    }
+    Write-Log "顺序修复完成：检查 $checked 个父节点，执行 $moves 次 move" -Level INFO
 }
 
 # ============================================================
