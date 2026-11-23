@@ -4,7 +4,10 @@
   "path": "quartz-obsidian-site",
   "path_key": "quartz-obsidian-site",
   "enabled": true,
-  "tags": [],
+  "tags": [
+    "obsidian",
+    "办公"
+  ],
   "source": {
     "type": "local",
     "ref": null,
